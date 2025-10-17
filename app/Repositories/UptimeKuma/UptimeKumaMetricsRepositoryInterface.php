@@ -57,5 +57,33 @@ interface UptimeKumaMetricsRepositoryInterface
      * Returns: [monitor_url, monitor_name, cert_days_remaining, cert_is_valid]
      */
     public function certificatesAttentionList(int $daysThreshold = 30): Collection;
-}
 
+    /**
+     * Slowest monitors currently (based on latestPerMonitor response_time_ms).
+     */
+    public function slowestCurrent(int $limit = 10): Collection;
+
+    /**
+     * Count status flips per monitor within the window.
+     * Returns: [monitor_url, monitor_name, flips]
+     */
+    public function flappingMonitors(?\DateTimeInterface $since = null, int $threshold = 3): Collection;
+
+    /**
+     * Detect downtime windows per monitor within the window.
+     * Returns entries: [monitor_url, monitor_name, start_at, end_at, minutes]
+     */
+    public function downtimeWindows(?\DateTimeInterface $since = null, ?string $monitorUrl = null, int $minDurationMinutes = 1): Collection;
+
+    /**
+     * Mean Time To Recovery (MTTR) per monitor in minutes.
+     * Returns: [monitor_url, monitor_name, mttr_minutes]
+     */
+    public function mttr(?\DateTimeInterface $since = null): Collection;
+
+    /**
+     * Availability per monitor within window; like leaderboard but returns all.
+     * Returns: [monitor_url, monitor_name, up_count, total, uptime_percent]
+     */
+    public function availabilityByMonitor(?\DateTimeInterface $since = null, string $direction = 'desc'): Collection;
+}

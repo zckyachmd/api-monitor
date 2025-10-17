@@ -22,9 +22,13 @@ return new class extends Migration
             $table->integer('status')->nullable();
 
             $table->timestamp('fetched_at');
-            $table->timestamps();
-
+            
+            // Indexes for common query patterns
             $table->index(['monitor_name', 'monitor_url']);
+            $table->index('fetched_at', 'ukm_fetched_at_idx');
+            $table->index(['monitor_url', 'fetched_at'], 'ukm_monitor_url_fetched_at_idx');
+            $table->index(['status', 'fetched_at'], 'ukm_status_fetched_at_idx');
+            $table->index(['cert_is_valid', 'fetched_at'], 'ukm_cert_valid_fetched_at_idx');
         });
     }
 
@@ -33,4 +37,3 @@ return new class extends Migration
         Schema::dropIfExists('uptime_kuma_metrics');
     }
 };
-
