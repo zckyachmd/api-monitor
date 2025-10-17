@@ -10,3 +10,5 @@ Artisan::command('inspire', function () {
 
 // Schedule: Fetch Uptime Kuma metrics every minute
 Schedule::command('kuma:fetch')->everyMinute();
+// Horizon snapshots for metrics
+Schedule::command('horizon:snapshot')->everyFiveMinutes();
