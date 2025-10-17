@@ -25,7 +25,7 @@ class FetchUptimeKumaMetrics extends Command
     {
         $overrideBase = $this->argument('baseUrl');
 
-        FetchUptimeKumaMetricsJob::dispatch($overrideBase);
+        FetchUptimeKumaMetricsJob::dispatch($overrideBase)->onQueue('kuma');
 
         $this->info('Dispatched FetchUptimeKumaMetricsJob'.($overrideBase ? " ({$overrideBase})" : ''));
 

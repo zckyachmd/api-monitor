@@ -17,10 +17,6 @@ class FetchUptimeKumaMetricsJob implements ShouldQueue
 
     public ?string $baseUrl;
 
-    /**
-     * Queue name isolation
-     */
-    public string $queue = 'kuma';
 
     public $tries = 3;
 
@@ -31,6 +27,7 @@ class FetchUptimeKumaMetricsJob implements ShouldQueue
     public function __construct(?string $baseUrl = null)
     {
         $this->baseUrl = $baseUrl;
+        $this->onQueue('kuma');
     }
 
     public function tags(): array
