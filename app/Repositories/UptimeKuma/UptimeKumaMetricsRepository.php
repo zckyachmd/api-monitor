@@ -3,7 +3,6 @@
 namespace App\Repositories\UptimeKuma;
 
 use App\Enums\MonitorStatus;
-use App\Models\UptimeKumaMetric;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 

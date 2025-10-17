@@ -2,14 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Enums\MonitorStatus;
 
 class UptimeKumaMetric extends Model
 {
-    use HasFactory;
-
     protected $table = 'uptime_kuma_metrics';
 
     public $timestamps = false;

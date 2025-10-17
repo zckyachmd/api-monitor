@@ -10,5 +10,8 @@ Artisan::command('inspire', function () {
 
 // Schedule: Fetch Uptime Kuma metrics every minute
 Schedule::command('kuma:fetch')->everyMinute();
-// Horizon snapshots for metrics
-Schedule::command('horizon:snapshot')->everyFiveMinutes();
+
+// Horizon snapshots only when using Redis (to avoid errors on other drivers)
+if (config('queue.default') === 'redis') {
+    Schedule::command('horizon:snapshot')->everyFiveMinutes();
+}

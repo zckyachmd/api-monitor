@@ -33,6 +33,11 @@ class FetchUptimeKumaMetricsJob implements ShouldQueue
         $this->baseUrl = $baseUrl;
     }
 
+    public function tags(): array
+    {
+        return ['kuma', 'uptime-kuma'];
+    }
+
     public function handle(UptimeKumaServiceInterface $service): void
     {
         $monitors = $service->fetchAndParse($this->baseUrl);
@@ -57,13 +62,5 @@ class FetchUptimeKumaMetricsJob implements ShouldQueue
             'count' => count($monitors),
             'baseUrl' => $this->baseUrl ?? config('uptime-kuma.base_url'),
         ]);
-    }
-
-    /**
-     * Job tags for Horizon UI
-     */
-    public function tags(): array
-    {
-        return ['kuma', 'uptime-kuma'];
     }
 }
