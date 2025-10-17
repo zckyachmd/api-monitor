@@ -26,12 +26,11 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         return array_merge(parent::share($request), [
+            'locale' => app()->getLocale(),
+            // Unified flash message format: { type?: 'success'|'error'|'info'|'warning'|'loading', title: string, description?: string }
+            'flash' => fn() => $request->session()->get('flash'),
             'auth' => [
                 'user' => $request->user(),
-            ],
-            'flash' => [
-                'success' => fn () => $request->session()->get('success'),
-                'error' => fn () => $request->session()->get('error'),
             ],
         ]);
     }

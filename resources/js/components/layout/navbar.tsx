@@ -1,4 +1,4 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 import { ModeToggle } from '@/components/theme/mode-toggle';
 import { Button } from '@/components/ui/button';
 import { User, CreditCard, LogOut, Settings, ActivitySquare } from 'lucide-react';
@@ -36,21 +36,10 @@ export function Navbar() {
         </div>
         <div className="flex items-center gap-2">
           <ModeToggle />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" aria-label="Open user menu" className="overflow-hidden rounded-full p-0">
-                <Avatar className="h-8 w-8">
-                  {user?.avatar_url ? (
-                    <AvatarImage src={user.avatar_url} alt={user?.name || user?.email || 'User'} />
-                  ) : (
-                    <AvatarFallback className="text-xs font-medium">{initials}</AvatarFallback>
-                  )}
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>
-                <div className="flex items-center gap-2">
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" aria-label="Open user menu" className="overflow-hidden rounded-full p-0">
                   <Avatar className="h-8 w-8">
                     {user?.avatar_url ? (
                       <AvatarImage src={user.avatar_url} alt={user?.name || user?.email || 'User'} />
@@ -58,28 +47,45 @@ export function Navbar() {
                       <AvatarFallback className="text-xs font-medium">{initials}</AvatarFallback>
                     )}
                   </Avatar>
-                  <div className="grid text-xs">
-                    <span className="font-medium leading-tight">{user?.name || 'User'}</span>
-                    <span className="text-muted-foreground leading-tight">{user?.email || 'user@example.com'}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-8 w-8">
+                      {user?.avatar_url ? (
+                        <AvatarImage src={user.avatar_url} alt={user?.name || user?.email || 'User'} />
+                      ) : (
+                        <AvatarFallback className="text-xs font-medium">{initials}</AvatarFallback>
+                      )}
+                    </Avatar>
+                    <div className="grid text-xs">
+                      <span className="font-medium leading-tight">{user?.name || 'User'}</span>
+                      <span className="text-muted-foreground leading-tight">{user?.email || 'user@example.com'}</span>
+                    </div>
                   </div>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" /> Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard className="mr-2 h-4 w-4" /> Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" /> Settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <LogOut className="mr-2 h-4 w-4" /> Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <User className="mr-2 h-4 w-4" /> Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <CreditCard className="mr-2 h-4 w-4" /> Billing
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Settings className="mr-2 h-4 w-4" /> Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); router.post('/logout'); }}>
+                  <LogOut className="mr-2 h-4 w-4" /> Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button asChild>
+              <Link href="/login">Sign In</Link>
+            </Button>
+          )}
         </div>
       </div>
     </header>

@@ -1,6 +1,7 @@
 import { createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
 import AdminLayout from '@/layouts/AdminLayout';
+import { Toaster } from '@/components/ui/sonner-toaster';
 
 const pages = import.meta.glob('./Pages/**/*.tsx');
 
@@ -16,7 +17,12 @@ createInertiaApp({
   },
   setup({ el, App, props }) {
     const root = createRoot(el as HTMLElement);
-    root.render(<App {...props} />);
+    root.render(
+      <>
+        <App {...props} />
+        <Toaster richColors closeButton position="top-right" />
+      </>
+    );
   },
   progress: { color: '#4B5563' },
 });

@@ -1,6 +1,5 @@
 import { Head } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
-import { ModeToggle } from '@/components/theme/mode-toggle';
 
 export default function Dashboard() {
   return (

@@ -1,7 +1,7 @@
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { Toaster } from '@/components/ui/sonner-toaster';
 import { Navbar } from '@/components/layout/navbar';
 import { FooterBar } from '@/components/layout/footer';
+import { FlashToaster } from '@/components/ui/flash-toaster';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -13,8 +13,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </main>
         <FooterBar />
       </div>
-      <Toaster richColors closeButton position="top-right" />
+      <FlashToaster />
     </TooltipProvider>
   );
 }
-
