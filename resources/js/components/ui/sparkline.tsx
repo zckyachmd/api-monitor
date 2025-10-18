@@ -1,13 +1,14 @@
 import * as React from 'react';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis } from 'recharts';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip as RTooltip } from 'recharts';
 
 type SparklineProps = {
   data: { value: number; time?: any }[];
   colorVar?: string; // CSS var color, e.g., 'var(--primary)'
   height?: number;
+  withTooltip?: boolean;
 };
 
-export function Sparkline({ data, colorVar = 'var(--primary)', height = 40 }: SparklineProps) {
+export function Sparkline({ data, colorVar = 'var(--primary)', height = 40, withTooltip = false }: SparklineProps) {
   const gradientId = React.useId();
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -20,6 +21,22 @@ export function Sparkline({ data, colorVar = 'var(--primary)', height = 40 }: Sp
         </defs>
         <XAxis dataKey="time" hide />
         <YAxis hide domain={[0, 'auto']} />
+        {withTooltip && (
+          <RTooltip
+            contentStyle={{
+              background: 'var(--popover)',
+              color: 'var(--popover-foreground)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)'
+            }}
+            labelStyle={{ color: 'var(--muted-foreground)' }}
+            formatter={(v: any) => [`${v} ms`, 'Avg']}
+            labelFormatter={(l: any) => {
+              const d = new Date(l);
+              return isNaN(d.getTime()) ? String(l) : d.toLocaleString();
+            }}
+          />
+        )}
         <Area
           type="monotone"
           dataKey="value"
@@ -33,4 +50,3 @@ export function Sparkline({ data, colorVar = 'var(--primary)', height = 40 }: Sp
     </ResponsiveContainer>
   );
 }
-

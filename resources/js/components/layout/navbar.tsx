@@ -30,7 +30,6 @@ export function Navbar() {
           </Link>
           <nav className="hidden gap-4 text-sm sm:flex">
             <Link href="/dashboard" className="text-muted-foreground hover:text-foreground">Dashboard</Link>
-            <Link href="#" className="text-muted-foreground hover:text-foreground">Monitors</Link>
             <Link href="/reports" className="text-muted-foreground hover:text-foreground">Reports</Link>
           </nav>
         </div>

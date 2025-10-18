@@ -81,7 +81,24 @@ export default function ReportsOverview() {
   });
   const intervalRef = React.useRef<number | null>(null);
   const refresh = React.useCallback(() => {
-    router.reload({ preserveState: true, preserveScroll: true });
+    router.reload({
+      preserveState: true,
+      preserveScroll: true,
+      only: [
+        'summary',
+        'uptimeTrend',
+        'responseTimeTrend',
+        'leaderboard',
+        'mostDown',
+        'neverDown',
+        'responseStats',
+        'slowestCurrent',
+        'certificates',
+        'flapping',
+        'availabilityAll',
+        'downtimeWindows',
+      ],
+    });
   }, []);
   React.useEffect(() => {
     if (intervalRef.current) {
