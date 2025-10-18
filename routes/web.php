@@ -19,6 +19,7 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', DashboardController::class);
+    Route::get('/dashboard/data', [DashboardController::class, 'data']);
 
     Route::prefix('reports')->group(function () {
         Route::get('/', [ReportsController::class, 'index']);

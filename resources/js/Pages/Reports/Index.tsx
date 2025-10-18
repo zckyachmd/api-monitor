@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
-import { FiltersBar } from '@/pages/Reports/components/FiltersBar';
 import { SummaryCards } from '@/pages/Reports/components/SummaryCards';
 import { TrendCharts } from '@/pages/Reports/components/TrendCharts';
 import {
@@ -9,8 +8,9 @@ import {
     CertificatesAndFlapping,
     AvailabilityAndDowntime,
 } from '@/pages/Reports/components/Tables';
-import type { DateRange } from 'react-day-picker';
+import { HeaderToolbar } from '@/pages/Reports/components/HeaderToolbar';
 import type { ReportsPageProps } from '@/pages/Reports/types';
+import type { DateRange } from 'react-day-picker';
 
 export default function ReportsOverview() {
     const { props } = usePage<ReportsPageProps>();
@@ -73,7 +73,7 @@ export default function ReportsOverview() {
         router.get(
             '/reports',
             { ...filters, bucket: value, start, end },
-            { preserveState: true, preserveScroll: true },
+            { preserveState: false, preserveScroll: true },
         );
     };
     const onRangeChange = (r?: DateRange) => {
@@ -84,7 +84,7 @@ export default function ReportsOverview() {
         if (e) setEnd(e);
         if (s && e) {
             const params = { ...filters, start: s, end: e };
-            router.get('/reports', params, { preserveState: true, preserveScroll: true });
+            router.get('/reports', params, { preserveState: false, preserveScroll: true });
         }
     };
 
@@ -105,12 +105,8 @@ export default function ReportsOverview() {
         <>
             <Head title="Reports" />
             <div className="space-y-6">
-                <div>
-                    <p className="text-xs text-muted-foreground">
-                        Last updated {updatedAt.toLocaleTimeString()}
-                    </p>
-                </div>
-                <FiltersBar
+                <HeaderToolbar
+                    updatedAt={updatedAt}
                     bucket={bucket}
                     start={start}
                     end={end}

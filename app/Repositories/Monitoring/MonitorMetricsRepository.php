@@ -39,7 +39,7 @@ class MonitorMetricsRepository implements MonitorMetricsRepositoryInterface
         return compact('total', 'up', 'down', 'pending', 'maintenance');
     }
 
-    public function uptimeLeaderboard(?\DateTimeInterface $since = null, int $limit = 10, string $direction = 'desc'): Collection
+    public function uptimeLeaderboard(?\DateTimeInterface $since = null, ?\DateTimeInterface $until = null, int $limit = 10, string $direction = 'desc'): Collection
     {
         $q = DB::table('uptime_kuma_metrics')
             ->select(
@@ -54,6 +54,9 @@ class MonitorMetricsRepository implements MonitorMetricsRepositoryInterface
         if ($since) {
             $q->where('fetched_at', '>=', $since);
         }
+        if ($until) {
+            $q->where('fetched_at', '<=', $until);
+        }
 
         $direction = strtolower($direction) === 'asc' ? 'asc' : 'desc';
         $q->orderBy('uptime_percent', $direction)->orderBy('total', 'desc');
@@ -61,7 +64,7 @@ class MonitorMetricsRepository implements MonitorMetricsRepositoryInterface
         return $q->limit($limit)->get();
     }
 
-    public function mostDown(?\DateTimeInterface $since = null, int $limit = 10): Collection
+    public function mostDown(?\DateTimeInterface $since = null, ?\DateTimeInterface $until = null, int $limit = 10): Collection
     {
         $q = DB::table('uptime_kuma_metrics')
             ->select(
@@ -77,11 +80,14 @@ class MonitorMetricsRepository implements MonitorMetricsRepositoryInterface
         if ($since) {
             $q->where('fetched_at', '>=', $since);
         }
+        if ($until) {
+            $q->where('fetched_at', '<=', $until);
+        }
 
         return $q->limit($limit)->get();
     }
 
-    public function neverDown(?\DateTimeInterface $since = null): Collection
+    public function neverDown(?\DateTimeInterface $since = null, ?\DateTimeInterface $until = null): Collection
     {
         $q = DB::table('uptime_kuma_metrics')
             ->select('monitor_url', 'monitor_name', DB::raw('SUM(CASE WHEN status = '.MonitorStatus::DOWN->value.' THEN 1 ELSE 0 END) as down_count'))
@@ -91,11 +97,14 @@ class MonitorMetricsRepository implements MonitorMetricsRepositoryInterface
         if ($since) {
             $q->where('fetched_at', '>=', $since);
         }
+        if ($until) {
+            $q->where('fetched_at', '<=', $until);
+        }
 
         return $q->orderBy('monitor_name')->get();
     }
 
-    public function responseTimeStats(?\DateTimeInterface $since = null, int $limit = 10, string $direction = 'desc'): Collection
+    public function responseTimeStats(?\DateTimeInterface $since = null, ?\DateTimeInterface $until = null, int $limit = 10, string $direction = 'desc'): Collection
     {
         $q = DB::table('uptime_kuma_metrics')
             ->select(
@@ -111,6 +120,9 @@ class MonitorMetricsRepository implements MonitorMetricsRepositoryInterface
         if ($since) {
             $q->where('fetched_at', '>=', $since);
         }
+        if ($until) {
+            $q->where('fetched_at', '<=', $until);
+        }
 
         $direction = strtolower($direction) === 'asc' ? 'asc' : 'desc';
         $q->orderBy('avg_ms', $direction)->orderBy('total', 'desc');
@@ -118,7 +130,7 @@ class MonitorMetricsRepository implements MonitorMetricsRepositoryInterface
         return $q->limit($limit)->get();
     }
 
-    public function uptimeTrend(?\DateTimeInterface $since = null, string $bucket = 'minute', ?string $monitorUrl = null): Collection
+    public function uptimeTrend(?\DateTimeInterface $since = null, string $bucket = 'minute', ?string $monitorUrl = null, ?\DateTimeInterface $until = null): Collection
     {
         [$expr, $alias] = $this->bucketExpression($bucket);
 
@@ -138,11 +150,14 @@ class MonitorMetricsRepository implements MonitorMetricsRepositoryInterface
         if ($monitorUrl) {
             $q->where('monitor_url', $monitorUrl);
         }
+        if ($until) {
+            $q->where('fetched_at', '<=', $until);
+        }
 
         return $q->get();
     }
 
-    public function responseTimeTrend(?\DateTimeInterface $since = null, string $bucket = 'minute', ?string $monitorUrl = null): Collection
+    public function responseTimeTrend(?\DateTimeInterface $since = null, string $bucket = 'minute', ?string $monitorUrl = null, ?\DateTimeInterface $until = null): Collection
     {
         [$expr, $alias] = $this->bucketExpression($bucket);
 
@@ -160,6 +175,9 @@ class MonitorMetricsRepository implements MonitorMetricsRepositoryInterface
         }
         if ($monitorUrl) {
             $q->where('monitor_url', $monitorUrl);
+        }
+        if ($until) {
+            $q->where('fetched_at', '<=', $until);
         }
 
         return $q->get();
@@ -193,7 +211,7 @@ class MonitorMetricsRepository implements MonitorMetricsRepositoryInterface
             ->values();
     }
 
-    public function flappingMonitors(?\DateTimeInterface $since = null, int $threshold = 3): Collection
+    public function flappingMonitors(?\DateTimeInterface $since = null, ?\DateTimeInterface $until = null, int $threshold = 3): Collection
     {
         $q = DB::table('uptime_kuma_metrics')
             ->select('monitor_url', 'monitor_name', 'status', 'fetched_at')
@@ -202,6 +220,9 @@ class MonitorMetricsRepository implements MonitorMetricsRepositoryInterface
 
         if ($since) {
             $q->where('fetched_at', '>=', $since);
+        }
+        if ($until) {
+            $q->where('fetched_at', '<=', $until);
         }
 
         $rows = $q->get();
@@ -235,7 +256,7 @@ class MonitorMetricsRepository implements MonitorMetricsRepositoryInterface
             ->values();
     }
 
-    public function downtimeWindows(?\DateTimeInterface $since = null, ?string $monitorUrl = null, int $minDurationMinutes = 1): Collection
+    public function downtimeWindows(?\DateTimeInterface $since = null, ?\DateTimeInterface $until = null, ?string $monitorUrl = null, int $minDurationMinutes = 1): Collection
     {
         $q = DB::table('uptime_kuma_metrics')
             ->select('monitor_url', 'monitor_name', 'status', 'fetched_at')
@@ -244,6 +265,9 @@ class MonitorMetricsRepository implements MonitorMetricsRepositoryInterface
 
         if ($since) {
             $q->where('fetched_at', '>=', $since);
+        }
+        if ($until) {
+            $q->where('fetched_at', '<=', $until);
         }
         if ($monitorUrl) {
             $q->where('monitor_url', $monitorUrl);
@@ -307,9 +331,9 @@ class MonitorMetricsRepository implements MonitorMetricsRepositoryInterface
         return collect($result)->sortByDesc('minutes')->values();
     }
 
-    public function mttr(?\DateTimeInterface $since = null): Collection
+    public function mttr(?\DateTimeInterface $since = null, ?\DateTimeInterface $until = null): Collection
     {
-        $windows = $this->downtimeWindows($since);
+        $windows = $this->downtimeWindows($since, $until);
         $grouped = $windows->groupBy('monitor_url');
         return $grouped->map(function ($rows, $url) {
             $minutes = (int) round($rows->avg('minutes'));
@@ -322,7 +346,7 @@ class MonitorMetricsRepository implements MonitorMetricsRepositoryInterface
         })->values()->sortBy('mttr_minutes')->values();
     }
 
-    public function availabilityByMonitor(?\DateTimeInterface $since = null, string $direction = 'desc'): Collection
+    public function availabilityByMonitor(?\DateTimeInterface $since = null, ?\DateTimeInterface $until = null, string $direction = 'desc'): Collection
     {
         $q = DB::table('uptime_kuma_metrics')
             ->select(
@@ -336,6 +360,9 @@ class MonitorMetricsRepository implements MonitorMetricsRepositoryInterface
 
         if ($since) {
             $q->where('fetched_at', '>=', $since);
+        }
+        if ($until) {
+            $q->where('fetched_at', '<=', $until);
         }
 
         $direction = strtolower($direction) === 'asc' ? 'asc' : 'desc';

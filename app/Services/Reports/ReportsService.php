@@ -19,19 +19,20 @@ class ReportsService implements ReportsServiceInterface
         $startDate = $start ? now()->parse($start)->startOfDay() : now()->subDays(7);
         $endDate = $end ? now()->parse($end)->endOfDay() : now();
         $since = $startDate;
+        $until = $endDate;
 
         $summary = $this->repo->currentSummary();
-        $uptimeTrend = $this->repo->uptimeTrend($since, $bucket);
-        $respTrend = $this->repo->responseTimeTrend($since, $bucket);
-        $leaderboard = $this->repo->uptimeLeaderboard($since, 10, 'desc');
-        $mostDown = $this->repo->mostDown($since, 10);
-        $neverDown = $this->repo->neverDown($since);
-        $respStats = $this->repo->responseTimeStats($since, 10, 'desc');
+        $uptimeTrend = $this->repo->uptimeTrend($since, $bucket, null, $until);
+        $respTrend = $this->repo->responseTimeTrend($since, $bucket, null, $until);
+        $leaderboard = $this->repo->uptimeLeaderboard($since, $until, 10, 'desc');
+        $mostDown = $this->repo->mostDown($since, $until, 10);
+        $neverDown = $this->repo->neverDown($since, $until);
+        $respStats = $this->repo->responseTimeStats($since, $until, 10, 'desc');
         $slowest = $this->repo->slowestCurrent(10);
         $certs = $this->repo->certificatesAttentionList(30);
-        $flapping = $this->repo->flappingMonitors($since, 3);
-        $availabilityAll = $this->repo->availabilityByMonitor($since, 'desc');
-        $downtime = $this->repo->downtimeWindows($since, null, 5);
+        $flapping = $this->repo->flappingMonitors($since, $until, 3);
+        $availabilityAll = $this->repo->availabilityByMonitor($since, $until, 'desc');
+        $downtime = $this->repo->downtimeWindows($since, $until, null, 5);
 
         return [
             'filters' => [
@@ -67,6 +68,7 @@ class ReportsService implements ReportsServiceInterface
             '30d' => now()->subDays(30),
             default => now()->subDay(),
         };
+        $until = now();
 
         $headings = [];
         $rows = [];
@@ -74,7 +76,7 @@ class ReportsService implements ReportsServiceInterface
 
         switch ($dataset) {
             case 'uptimeTrend':
-                $data = $this->repo->uptimeTrend($since, $bucket);
+                $data = $this->repo->uptimeTrend($since, $bucket, null, $until);
                 $headings = ['bucket', 'up_count', 'total', 'uptime_percent'];
                 $rows = collect($data)->map(fn ($r) => [
                     $r->bucket,
@@ -84,7 +86,7 @@ class ReportsService implements ReportsServiceInterface
                 ])->toArray();
                 break;
             case 'responseTimeTrend':
-                $data = $this->repo->responseTimeTrend($since, $bucket);
+                $data = $this->repo->responseTimeTrend($since, $bucket, null, $until);
                 $headings = ['bucket', 'avg_ms'];
                 $rows = collect($data)->map(fn ($r) => [
                     $r->bucket,
@@ -92,7 +94,7 @@ class ReportsService implements ReportsServiceInterface
                 ])->toArray();
                 break;
             case 'leaderboard':
-                $data = $this->repo->uptimeLeaderboard($since, 1000, 'desc');
+                $data = $this->repo->uptimeLeaderboard($since, null, 1000, 'desc');
                 $headings = ['monitor_url', 'monitor_name', 'up_count', 'total', 'uptime_percent'];
                 $rows = collect($data)->map(fn ($r) => [
                     $r->monitor_url,
@@ -103,7 +105,7 @@ class ReportsService implements ReportsServiceInterface
                 ])->toArray();
                 break;
             case 'mostDown':
-                $data = $this->repo->mostDown($since, 1000);
+                $data = $this->repo->mostDown($since, null, 1000);
                 $headings = ['monitor_url', 'monitor_name', 'down_count', 'total'];
                 $rows = collect($data)->map(fn ($r) => [
                     $r->monitor_url,
@@ -113,7 +115,7 @@ class ReportsService implements ReportsServiceInterface
                 ])->toArray();
                 break;
             case 'neverDown':
-                $data = $this->repo->neverDown($since);
+                $data = $this->repo->neverDown($since, null);
                 $headings = ['monitor_url', 'monitor_name'];
                 $rows = collect($data)->map(fn ($r) => [
                     $r->monitor_url,
@@ -121,7 +123,7 @@ class ReportsService implements ReportsServiceInterface
                 ])->toArray();
                 break;
             case 'responseStats':
-                $data = $this->repo->responseTimeStats($since, 1000, 'desc');
+                $data = $this->repo->responseTimeStats($since, null, 1000, 'desc');
                 $headings = ['monitor_url', 'monitor_name', 'avg_ms', 'max_ms', 'total'];
                 $rows = collect($data)->map(fn ($r) => [
                     $r->monitor_url,
@@ -151,7 +153,7 @@ class ReportsService implements ReportsServiceInterface
                 ])->toArray();
                 break;
             case 'flapping':
-                $data = $this->repo->flappingMonitors($since, 3);
+                $data = $this->repo->flappingMonitors($since, null, 3);
                 $headings = ['monitor_url', 'monitor_name', 'flips'];
                 $rows = collect($data)->map(fn ($r) => [
                     $r->monitor_url,
@@ -160,7 +162,7 @@ class ReportsService implements ReportsServiceInterface
                 ])->toArray();
                 break;
             case 'availabilityAll':
-                $data = $this->repo->availabilityByMonitor($since, 'desc');
+                $data = $this->repo->availabilityByMonitor($since, null, 'desc');
                 $headings = ['monitor_url', 'monitor_name', 'up_count', 'total', 'uptime_percent'];
                 $rows = collect($data)->map(fn ($r) => [
                     $r->monitor_url,
@@ -171,7 +173,7 @@ class ReportsService implements ReportsServiceInterface
                 ])->toArray();
                 break;
             case 'downtimeWindows':
-                $data = $this->repo->downtimeWindows($since, null, 5);
+                $data = $this->repo->downtimeWindows($since, null, null, 5);
                 $headings = ['monitor_url', 'monitor_name', 'start_at', 'end_at', 'minutes'];
                 $rows = collect($data)->map(fn ($r) => [
                     $r->monitor_url,

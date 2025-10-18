@@ -19,7 +19,7 @@ class ReportsController
 
         $data = $service->buildOverview($start, $end, $bucket, $auto);
 
-        return Inertia::render('Reports/Overview', $data);
+        return Inertia::render('Reports/Index', $data);
     }
 
     public function export(Request $request, ReportsServiceInterface $service)

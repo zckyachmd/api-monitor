@@ -19,14 +19,17 @@ export function HeaderToolbar({ updatedAt, loading, autoMs, onRefresh, onChangeA
                 <p className="text-xs text-muted-foreground mt-1">Last updated {updatedAt.toLocaleTimeString()}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:justify-end">
-                <Button variant="outline" className="gap-2" aria-label="Refresh now" onClick={onRefresh} disabled={loading}>
-                    <RefreshCw className={'h-4 w-4 ' + (loading ? 'animate-spin' : '')} />
+                <Button variant="outline" className="gap-2 group" aria-label="Refresh now" onClick={onRefresh} disabled={loading}>
+                    <RefreshCw
+                        className={'h-4 w-4 transition-transform duration-150 ' + (loading ? 'animate-spin' : 'group-hover:rotate-12')}
+                        style={loading ? { animationDuration: '1.8s' } : undefined}
+                    />
                     <span className="hidden sm:inline">Refresh</span>
                 </Button>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="gap-2" aria-label="Auto refresh options">
-                            <Timer className="h-4 w-4" />
+                        <Button variant="outline" className="gap-2 group" aria-label="Auto refresh options">
+                            <Timer className="h-4 w-4 transition-transform duration-150 group-hover:scale-110" />
                             <span>
                                 {(() => {
                                     const map: Record<number, string> = {
@@ -66,4 +69,3 @@ export function HeaderToolbar({ updatedAt, loading, autoMs, onRefresh, onChangeA
         </div>
     );
 }
-

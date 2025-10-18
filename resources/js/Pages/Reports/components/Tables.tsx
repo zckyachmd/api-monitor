@@ -10,14 +10,26 @@ import type {
     SlowestCurrentItem,
 } from '@/pages/Reports/types';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, LabelList } from 'recharts';
+import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import ChartTooltip from '@/components/ui/chart-tooltip';
 import { formatTimeLabel } from '@/pages/Reports/utils';
 
 function MonitorCell(r: LeaderItem) {
     return (
-        <div>
-            <div className="truncate font-medium">{r.monitor_name}</div>
-            <div className="truncate text-xs text-muted-foreground hidden sm:block">
+        <div className="min-w-0 max-w-[220px] sm:max-w-[280px]">
+            <div className="truncate font-medium" title={r.monitor_name}>
+                {r.monitor_name}
+            </div>
+            <div
+                className="truncate text-xs text-muted-foreground hidden sm:block"
+                title={r.monitor_url}
+            >
                 {r.monitor_url}
             </div>
         </div>
@@ -79,6 +91,7 @@ export function Leaderboards({
                         storageKey="reports:leaderboard"
                         columns={colsLeaderboard}
                         data={leaderboard}
+                        noScrollX
                     />
                 </CardContent>
             </Card>
@@ -93,6 +106,7 @@ export function Leaderboards({
                             storageKey="reports:mostDown"
                             columns={colsMostDown}
                             data={mostDown.filter((r) => (r.down_count ?? 0) > 0)}
+                            noScrollX
                         />
                     ) : (
                         <p className="text-sm text-muted-foreground">
@@ -112,6 +126,70 @@ export function ResponseTables({
     responseStats: LeaderItem[];
     slowestCurrent: SlowestCurrentItem[];
 }) {
+    const [isSmall, setIsSmall] = React.useState(false);
+    const [isTiny, setIsTiny] = React.useState(false);
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const mq = window.matchMedia('(max-width: 640px)');
+        const handler = (e: MediaQueryListEvent | MediaQueryList) =>
+            setIsSmall('matches' in e ? e.matches : (e as MediaQueryList).matches);
+        // set initial
+        setIsSmall(mq.matches);
+        try {
+            mq.addEventListener('change', handler as (e: MediaQueryListEvent) => void);
+        } catch {
+            // Safari
+            // @ts-ignore
+            mq.addListener(handler);
+        }
+        return () => {
+            try {
+                mq.removeEventListener('change', handler as (e: MediaQueryListEvent) => void);
+            } catch {
+                // Safari
+                // @ts-ignore
+                mq.removeListener(handler);
+            }
+        };
+    }, []);
+
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const mq = window.matchMedia('(max-width: 360px)');
+        const handler = (e: MediaQueryListEvent | MediaQueryList) =>
+            setIsTiny('matches' in e ? e.matches : (e as MediaQueryList).matches);
+        setIsTiny(mq.matches);
+        try {
+            mq.addEventListener('change', handler as (e: MediaQueryListEvent) => void);
+        } catch {
+            // Safari
+            // @ts-ignore
+            mq.addListener(handler);
+        }
+        return () => {
+            try {
+                mq.removeEventListener('change', handler as (e: MediaQueryListEvent) => void);
+            } catch {
+                // Safari
+                // @ts-ignore
+                mq.removeListener(handler);
+            }
+        };
+    }, []);
+
+    const ellipsize = React.useCallback(
+        (s: string) => {
+            const limit = isSmall ? 14 : 24;
+            if (!s) return '';
+            return s.length > limit ? s.slice(0, limit - 1) + '…' : s;
+        },
+        [isSmall],
+    );
+
+    const [limit, setLimit] = React.useState<number | 'all'>('all');
+    React.useEffect(() => {
+        if (isSmall && limit === 'all') setLimit(8);
+    }, [isSmall]);
     const colsRespStats: ColumnDef<LeaderItem>[] = React.useMemo(
         () => [
             {
@@ -122,14 +200,14 @@ export function ResponseTables({
             {
                 header: () => <div className="text-right">Avg</div>,
                 accessorKey: 'avg_ms',
-                cell: ({ row }) => <div className="text-right">{row.original.avg_ms} ms</div>,
-                meta: { thClassName: 'w-26 text-right', tdClassName: 'w-26 text-right' },
+                cell: ({ row }) => <div className="text-right whitespace-nowrap">{row.original.avg_ms} ms</div>,
+                meta: { thClassName: 'w-26 text-right', tdClassName: 'w-26 text-right whitespace-nowrap' },
             },
             {
                 header: () => <div className="text-right">Max</div>,
                 accessorKey: 'max_ms',
-                cell: ({ row }) => <div className="text-right">{row.original.max_ms} ms</div>,
-                meta: { thClassName: 'w-20 text-right', tdClassName: 'w-20 text-right' },
+                cell: ({ row }) => <div className="text-right whitespace-nowrap">{row.original.max_ms} ms</div>,
+                meta: { thClassName: 'w-20 text-right', tdClassName: 'w-20 text-right whitespace-nowrap' },
             },
         ],
         [],
@@ -148,6 +226,7 @@ export function ResponseTables({
                             storageKey="reports:responseStats"
                             columns={colsRespStats}
                             data={responseStats}
+                            noScrollX
                         />
                     ) : (
                         <p className="text-sm text-muted-foreground">
@@ -159,21 +238,62 @@ export function ResponseTables({
 
             <Card className="h-full flex flex-col">
                 <CardHeader>
-                    <CardTitle>Slowest Now</CardTitle>
-                    <CardDescription>Current response time by monitor</CardDescription>
+                    <div className="flex items-center justify-between gap-2">
+                        <div>
+                            <CardTitle>Slowest Now</CardTitle>
+                            <CardDescription>Current response time by monitor</CardDescription>
+                        </div>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="h-8 px-2 text-xs">
+                                    {limit === 'all' ? 'All' : `Top ${limit}`}
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-28">
+                                {[['All', 'all'], ['Top 5', 5], ['Top 8', 8], ['Top 10', 10], ['Top 15', 15]].map(
+                                    ([label, val]) => (
+                                        <DropdownMenuItem
+                                            key={String(val)}
+                                            onSelect={(e) => {
+                                                e.preventDefault();
+                                                setLimit(val as number | 'all');
+                                            }}
+                                        >
+                                            <div className="flex w-full items-center justify-between">
+                                                <span>{label as string}</span>
+                                                {limit === (val as any) && (
+                                                    <span className="text-xs text-muted-foreground">(selected)</span>
+                                                )}
+                                            </div>
+                                        </DropdownMenuItem>
+                                    ),
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                 </CardHeader>
-                <CardContent className="h-56 sm:h-72">
-                    <ResponsiveContainer width="100%" height="100%">
+                {(() => {
+                    const barSize = isSmall ? 12 : 18;
+                    const prepared = [...slowestCurrent]
+                        .map((r) => ({ name: r.monitor_name, ms: r.response_time_ms }))
+                        .sort((a, b) => (b.ms ?? 0) - (a.ms ?? 0));
+                    const data = limit === 'all' ? prepared : prepared.slice(0, limit);
+                    const yAxisWidth = isTiny ? 64 : isSmall ? 84 : 120;
+                    const leftMargin = isTiny ? 2 : isSmall ? 4 : 8;
+                    const chartHeight = isSmall
+                        ? Math.max(160, data.length * (barSize + 8) + 32)
+                        : Math.max(288, data.length * (barSize + 10) + 48);
+                    return (
+                        <CardContent style={{ height: chartHeight }}>
+                            <ResponsiveContainer width="100%" height="100%">
                         <BarChart
-                            data={slowestCurrent.map((r) => ({
-                                name: r.monitor_name,
-                                ms: r.response_time_ms,
-                            }))}
+                            data={data}
                             layout="vertical"
-                            margin={{ left: 8, right: 8, top: 8, bottom: 8 }}
+                            margin={{ left: leftMargin, right: 8, top: 8, bottom: 8 }}
                         >
                             <XAxis
                                 type="number"
+                                domain={[0, 'dataMax']}
                                 tick={{ fill: 'var(--muted-foreground)' }}
                                 axisLine={{ stroke: 'var(--border)' }}
                                 tickLine={{ stroke: 'var(--border)' }}
@@ -181,8 +301,12 @@ export function ResponseTables({
                             <YAxis
                                 type="category"
                                 dataKey="name"
-                                width={120}
-                                tick={{ fill: 'var(--muted-foreground)' }}
+                                width={yAxisWidth}
+                                tick={{
+                                    fill: 'var(--muted-foreground)',
+                                    fontSize: isSmall ? 11 : 12,
+                                }}
+                                tickFormatter={(v) => ellipsize(String(v))}
                                 axisLine={{ stroke: 'var(--border)' }}
                                 tickLine={{ stroke: 'var(--border)' }}
                             />
@@ -199,19 +323,23 @@ export function ResponseTables({
                             <Bar
                                 dataKey="ms"
                                 fill={'var(--primary)'}
-                                barSize={18}
+                                barSize={barSize}
                                 radius={[0, 4, 4, 0]}
                             >
-                                <LabelList
-                                    dataKey="ms"
-                                    position="right"
-                                    formatter={(v: number | string) => `${v} ms`}
-                                    className="text-xs"
-                                />
+                                {!isSmall && (
+                                    <LabelList
+                                        dataKey="ms"
+                                        position="right"
+                                        formatter={(v: number | string) => `${v} ms`}
+                                        className="text-xs"
+                                    />
+                                )}
                             </Bar>
                         </BarChart>
-                    </ResponsiveContainer>
-                </CardContent>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    );
+                })()}
             </Card>
         </div>
     );
@@ -287,6 +415,7 @@ export function CertificatesAndFlapping({
                             storageKey="reports:certificates"
                             columns={colsCertificates}
                             data={certificates}
+                            noScrollX
                         />
                     ) : (
                         <p className="text-sm text-muted-foreground">
@@ -306,6 +435,7 @@ export function CertificatesAndFlapping({
                             storageKey="reports:flapping"
                             columns={colsFlapping}
                             data={flapping}
+                            noScrollX
                         />
                     ) : (
                         <p className="text-sm text-muted-foreground">No flapping detected.</p>
@@ -356,9 +486,14 @@ export function AvailabilityAndDowntime({
                 header: 'Monitor',
                 accessorKey: 'monitor_name',
                 cell: ({ row }) => (
-                    <div>
-                        <div className="truncate font-medium">{row.original.monitor_name}</div>
-                        <div className="truncate text-xs text-muted-foreground hidden sm:block">
+                    <div className="min-w-0 max-w-[220px] sm:max-w-[280px]">
+                        <div className="truncate font-medium" title={row.original.monitor_name}>
+                            {row.original.monitor_name}
+                        </div>
+                        <div
+                            className="truncate text-xs text-muted-foreground hidden sm:block"
+                            title={row.original.monitor_url}
+                        >
                             {row.original.monitor_url}
                         </div>
                     </div>
@@ -397,6 +532,7 @@ export function AvailabilityAndDowntime({
                             storageKey="reports:availabilityAll"
                             columns={colsAvailability}
                             data={availabilityAll}
+                            noScrollX
                         />
                     ) : (
                         <p className="text-sm text-muted-foreground">
@@ -421,6 +557,7 @@ export function AvailabilityAndDowntime({
                             storageKey="reports:downtimeWindows"
                             columns={colsDowntime}
                             data={downtimeWindows}
+                            noScrollX
                         />
                     )}
                 </CardContent>

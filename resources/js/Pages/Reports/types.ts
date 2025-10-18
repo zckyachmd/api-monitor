@@ -49,7 +49,17 @@ export type DowntimeWindow = {
 };
 
 export type ReportsPageProps = {
-    filters: { range: string; bucket: string; since: string; start?: string; end?: string };
+    filters: {
+        range?: string;
+        auto?: number;
+        bucket: string;
+        since: string;
+        start?: string;
+        end?: string;
+        fallbackApplied?: boolean;
+        effectiveStart?: string;
+        effectiveEnd?: string;
+    };
     summary: Summary;
     uptimeTrend: TrendPoint[];
     responseTimeTrend: TrendPoint[];

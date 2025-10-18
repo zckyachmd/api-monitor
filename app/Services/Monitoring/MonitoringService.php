@@ -25,7 +25,7 @@ class MonitoringService implements MonitoringServiceInterface
         };
 
         $latest = $this->repo->latestPerMonitor();
-        $availability = $this->repo->availabilityByMonitor($since, 'desc');
+        $availability = $this->repo->availabilityByMonitor($since, null, 'desc');
 
         $availMap = collect($availability)->keyBy('monitor_url');
 
@@ -65,7 +65,7 @@ class MonitoringService implements MonitoringServiceInterface
         }
 
         foreach ($downMonitors as $url) {
-            $windows = $this->repo->downtimeWindows($since, $url, 1);
+            $windows = $this->repo->downtimeWindows($since, null, $url, 1);
             if ($windows->count() > 0) {
                 $last = $windows->last();
                 $items[$url]['down_minutes'] = (int) ($last->minutes ?? 0);

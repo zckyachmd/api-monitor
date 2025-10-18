@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Sparkline } from '@/components/ui/sparkline';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Dialog,
@@ -32,10 +31,9 @@ import type { MonitorItem } from '@/pages/Dashboard/types';
 
 type Props = {
     monitors: MonitorItem[];
-    loading: boolean;
 };
 
-export function MonitorsGrid({ monitors, loading }: Props) {
+export function MonitorsGrid({ monitors }: Props) {
     const [order, setOrder] = React.useState<string[]>(() => {
         try {
             const urls = monitors.map((m) => m.monitor_url);
@@ -100,104 +98,65 @@ export function MonitorsGrid({ monitors, loading }: Props) {
 
     return (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {loading
-                ? Array.from({ length: 6 }).map((_, i) => (
-                      <Card key={i} className="overflow-hidden">
-                          <CardHeader>
-                              <div className="flex items-start justify-between gap-2">
-                                  <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2">
-                                          <Skeleton className="h-2.5 w-2.5 rounded-full" />
-                                          <Skeleton className="h-4 w-40" />
-                                      </div>
-                                      <Skeleton className="mt-2 h-3 w-52" />
-                                  </div>
-                              </div>
-                              <Skeleton className="h-4 w-4" />
-                          </CardHeader>
-                          <CardContent>
-                              <div className="mb-3 flex gap-2">
-                                  <Skeleton className="h-4 w-16" />
-                                  <Skeleton className="h-4 w-20" />
-                              </div>
-                              <div className="grid grid-cols-2 gap-3 text-sm">
-                                  <div>
-                                      <Skeleton className="h-3 w-20" />
-                                      <Skeleton className="mt-1 h-4 w-16" />
-                                  </div>
-                                  <div>
-                                      <Skeleton className="h-3 w-20" />
-                                      <Skeleton className="mt-1 h-4 w-16" />
-                                  </div>
-                                  <div>
-                                      <Skeleton className="h-3 w-20" />
-                                      <Skeleton className="mt-1 h-4 w-16" />
-                                  </div>
-                                  <div>
-                                      <Skeleton className="h-3 w-20" />
-                                      <Skeleton className="mt-1 h-4 w-16" />
-                                  </div>
-                              </div>
-                          </CardContent>
-                      </Card>
-                  ))
-                : displayed.map((m) => (
-                      <Card
-                          key={m.monitor_url}
-                          className={`overflow-hidden ${dragOver === m.monitor_url ? 'ring-2 ring-primary/50 ring-offset-2 ring-offset-background' : ''}`}
-                          draggable
-                          onDragStart={() => onDragStart(m.monitor_url)}
-                          onDragOver={(e) => {
-                              onDragOver(e);
-                              setDragOver(m.monitor_url);
-                          }}
-                          onDragEnter={() => setDragOver(m.monitor_url)}
-                          onDragLeave={() => setDragOver(null)}
-                          onDrop={() => onDrop(m.monitor_url)}
-                      >
-                          <CardHeader>
-                              <div className="flex items-start justify-between gap-2">
-                                  <div>
-                                      <div className="flex items-center gap-2">
-                                          <span className="text-muted-foreground cursor-grab">
-                                              <GripVertical className="h-4 w-4" />
-                                          </span>
-                                          <StatusDot status={m.status} />
-                                          <CardTitle className="truncate">{m.monitor_name}</CardTitle>
-                                      </div>
-                                      <CardDescription
-                                          className="truncate cursor-copy hover:underline"
-                                          title={m.monitor_url}
-                                          onClick={() => copyUrl(m.monitor_url)}
-                                      >
-                                          {m.monitor_url}
-                                      </CardDescription>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                      <Dialog>
-                                          <DialogTrigger asChild>
-                                              <button
-                                                  type="button"
-                                                  title="Open fullscreen"
-                                                  className="inline-flex h-6 w-6 items-center justify-center text-muted-foreground hover:text-foreground"
-                                              >
-                                                  <Maximize2 className="h-4 w-4" />
-                                              </button>
-                                          </DialogTrigger>
-                                          <DialogContent className="max-w-2xl">
-                                              <DialogHeader>
-                                                  <div className="flex items-center gap-2">
-                                                      <StatusDot status={m.status} />
-                                                      <DialogTitleCmp className="leading-none">{m.monitor_name}</DialogTitleCmp>
-                                                  </div>
-                                                  <DialogDescription
-                                                      className="break-all cursor-copy hover:underline"
-                                                      title={m.monitor_url}
-                                                      onClick={() => copyUrl(m.monitor_url)}
-                                                  >
-                                                      {m.monitor_url}
-                                                  </DialogDescription>
-                                              </DialogHeader>
+            {displayed.map((m) => (
+                    <Card
+                        key={m.monitor_url}
+                        className={`relative overflow-hidden ${dragOver === m.monitor_url ? 'ring-2 ring-primary/50 ring-offset-2 ring-offset-background' : ''}`}
+                        draggable
+                        onDragStart={() => onDragStart(m.monitor_url)}
+                    onDragOver={(e) => {
+                        onDragOver(e);
+                        setDragOver(m.monitor_url);
+                    }}
+                    onDragEnter={() => setDragOver(m.monitor_url)}
+                    onDragLeave={() => setDragOver(null)}
+                    onDrop={() => onDrop(m.monitor_url)}
+                >
+                    <CardHeader>
+                        <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <span className="text-muted-foreground cursor-grab">
+                                        <GripVertical className="h-4 w-4 transition-transform duration-150 hover:scale-110" />
+                                    </span>
+                                    <StatusDot status={m.status} />
+                                    <CardTitle className="truncate flex-1" title={m.monitor_name}>
+                                        {m.monitor_name}
+                                    </CardTitle>
+                                </div>
+                                <CardDescription
+                                    className="truncate cursor-copy hover:underline"
+                                    title={m.monitor_url}
+                                    onClick={() => copyUrl(m.monitor_url)}
+                                >
+                                    {m.monitor_url}
+                                </CardDescription>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <button
+                                            type="button"
+                                            title="Open fullscreen"
+                                            className="inline-flex h-6 w-6 items-center justify-center text-muted-foreground hover:text-foreground transition-transform duration-150 hover:scale-110"
+                                        >
+                                            <Maximize2 className="h-4 w-4" />
+                                        </button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-2xl">
+                                        <DialogHeader>
+                                            <div className="flex items-center gap-2">
+                                                <StatusDot status={m.status} />
+                                                <DialogTitleCmp className="leading-none">{m.monitor_name}</DialogTitleCmp>
+                                            </div>
+                                            <DialogDescription
+                                                className="break-all cursor-copy hover:underline"
+                                                title={m.monitor_url}
+                                                onClick={() => copyUrl(m.monitor_url)}
+                                            >
+                                                {m.monitor_url}
+                                            </DialogDescription>
+                                        </DialogHeader>
                                               <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
                                                   <div>
                                                       <div className="text-muted-foreground">Hostname</div>
@@ -217,7 +176,7 @@ export function MonitorsGrid({ monitors, loading }: Props) {
                                                       <div className="text-muted-foreground inline-flex items-center gap-1">
                                                           <Timer className="h-3.5 w-3.5" /> Response
                                                       </div>
-                                                      <div className="font-medium">{typeof m.response_time_ms === 'number' ? `${m.response_time_ms} ms` : '—'}</div>
+                                                      <div className="font-medium">{m.status === 0 ? '—' : typeof m.response_time_ms === 'number' ? `${m.response_time_ms} ms` : '—'}</div>
                                                   </div>
                                                   <div>
                                                       <div className="text-muted-foreground inline-flex items-center gap-1">
@@ -252,11 +211,11 @@ export function MonitorsGrid({ monitors, loading }: Props) {
                                                               <button
                                                                   type="button"
                                                                   title="Average response time per minute"
-                                                                  className="inline-flex h-5 w-5 items-center justify-center text-muted-foreground"
+                                                                  className="group inline-flex h-5 w-5 items-center justify-center text-muted-foreground"
                                                                   tabIndex={-1}
                                                                   aria-hidden="true"
                                                               >
-                                                                  <Info className="h-3.5 w-3.5" />
+                                                                  <Info className="h-3.5 w-3.5 transition-transform duration-150 group-hover:rotate-12" />
                                                               </button>
                                                           </TooltipTrigger>
                                                           <TooltipContent>
@@ -352,7 +311,7 @@ export function MonitorsGrid({ monitors, loading }: Props) {
                                   <div>
                                       <div className="text-muted-foreground">Response</div>
                                       <div className="font-medium">
-                                          {typeof m.response_time_ms === 'number' ? `${m.response_time_ms} ms` : '—'}
+                                          {m.status === 0 ? '—' : typeof m.response_time_ms === 'number' ? `${m.response_time_ms} ms` : '—'}
                                       </div>
                                   </div>
                                   <div>
@@ -365,8 +324,8 @@ export function MonitorsGrid({ monitors, loading }: Props) {
                                   </div>
                               </div>
                           </CardContent>
-                      </Card>
-                  ))}
+                </Card>
+            ))}
         </div>
     );
 }

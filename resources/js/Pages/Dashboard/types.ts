@@ -29,10 +29,18 @@ export type DashboardSeries = {
     down: { bucket: string; value: number }[];
 };
 
-export type DashboardPageProps = {
-    filters?: { auto?: number };
+export type DashboardFilters = {
+    range: string;
+    since?: string;
+    auto?: number;
+};
+
+export type DashboardData = {
     summary: DashboardSummary;
     monitors: MonitorItem[];
     series: DashboardSeries;
 };
 
+export type DashboardPageProps = {
+    filters: DashboardFilters;
+} & DashboardData;

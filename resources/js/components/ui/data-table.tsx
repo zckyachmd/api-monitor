@@ -27,6 +27,7 @@ export interface DataTableProps<TData, TValue> {
     bordered?: boolean; // show border around table
     pageSizeOptions?: number[]; // options for rows per page
     defaultPageSize?: number;
+    noScrollX?: boolean; // hide horizontal scroll and rely on ellipsis
 }
 type ColumnMeta = { thClassName?: string; tdClassName?: string };
 export function DataTable<TData, TValue>({
@@ -36,6 +37,7 @@ export function DataTable<TData, TValue>({
     bordered = false,
     pageSizeOptions = [5, 10, 20, 50, 100],
     defaultPageSize = 10,
+    noScrollX = false,
 }: DataTableProps<TData, TValue>) {
     const [sorting, setSorting] = React.useState<SortingState>(() => {
         if (!storageKey) return [];
@@ -93,8 +95,14 @@ export function DataTable<TData, TValue>({
 
     return (
         <div>
-            <div className={'overflow-x-auto rounded-md min-h-48 ' + (bordered ? 'border' : '')}>
-                <Table className="text-sm">
+            <div
+                className={
+                    (noScrollX ? 'overflow-x-hidden' : 'overflow-x-auto') +
+                    ' rounded-md min-h-48 ' +
+                    (bordered ? 'border' : '')
+                }
+            >
+                <Table className="text-sm table-fixed">
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
