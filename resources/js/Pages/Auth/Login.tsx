@@ -1,23 +1,23 @@
-import { Head, useForm } from "@inertiajs/react";
-import AuthLayout from "@/layouts/AuthLayout";
-import { Input } from "@/components/ui/input";
-import { PasswordInput } from "@/components/ui/password-input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { InputError } from "@/components/ui/input-error";
+import { Head, useForm } from '@inertiajs/react';
+import AuthLayout from '@/layouts/AuthLayout';
+import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { InputError } from '@/components/ui/input-error';
 
 export default function Login() {
     const form = useForm({
-        email: "",
-        password: "",
+        email: '',
+        password: '',
         remember: false as boolean,
     });
 
     function submit(e: React.FormEvent) {
         e.preventDefault();
-        form.post("/login", {
-            onFinish: () => form.reset("password"),
+        form.post('/login', {
+            onFinish: () => form.reset('password'),
         });
     }
 
@@ -40,12 +40,10 @@ export default function Login() {
                             placeholder="you@example.com"
                             required
                             value={form.data.email}
-                            onChange={(e) =>
-                                form.setData("email", e.target.value)
-                            }
+                            onChange={(e) => form.setData('email', e.target.value)}
                             autoComplete="email"
                             aria-invalid={!!form.errors.email}
-                            aria-describedby={form.errors.email ? "email-error" : undefined}
+                            aria-describedby={form.errors.email ? 'email-error' : undefined}
                         />
                         <InputError id="email-error" message={form.errors.email} />
                     </div>
@@ -55,12 +53,10 @@ export default function Login() {
                             id="password"
                             required
                             value={form.data.password}
-                            onChange={(e) =>
-                                form.setData("password", e.target.value)
-                            }
+                            onChange={(e) => form.setData('password', e.target.value)}
                             autoComplete="current-password"
                             aria-invalid={!!form.errors.password}
-                            aria-describedby={form.errors.password ? "password-error" : undefined}
+                            aria-describedby={form.errors.password ? 'password-error' : undefined}
                         />
                         <InputError id="password-error" message={form.errors.password} />
                     </div>
@@ -68,20 +64,14 @@ export default function Login() {
                         <label className="flex items-center gap-2 text-sm">
                             <Checkbox
                                 checked={form.data.remember}
-                                onCheckedChange={(v) =>
-                                    form.setData("remember", Boolean(v))
-                                }
+                                onCheckedChange={(v) => form.setData('remember', Boolean(v))}
                                 aria-label="Remember me"
                             />
                             <span>Remember me</span>
                         </label>
                     </div>
-                    <Button
-                        className="w-full"
-                        type="submit"
-                        disabled={form.processing}
-                    >
-                        {form.processing ? "Signing in…" : "Sign In"}
+                    <Button className="w-full" type="submit" disabled={form.processing}>
+                        {form.processing ? 'Signing in…' : 'Sign In'}
                     </Button>
                 </form>
                 {/* <p className="text-center text-xs text-muted-foreground">
@@ -92,4 +82,6 @@ export default function Login() {
     );
 }
 
-(Login as any).layout = (page: React.ReactNode) => <AuthLayout>{page}</AuthLayout>;
+(Login as unknown as { layout?: (page: React.ReactNode) => React.ReactNode }).layout = (page: React.ReactNode) => (
+    <AuthLayout>{page}</AuthLayout>
+);

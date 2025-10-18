@@ -12,15 +12,14 @@ class ReportsController
 {
     public function index(Request $request, Repo $repo)
     {
-        $range = (string) $request->query('range', '24h'); // 24h|7d|30d
         $bucket = (string) $request->query('bucket', 'minute'); // minute|hour|day
         $auto = (int) $request->query('auto', 30_000); // ms
+        $start = $request->query('start');
+        $end = $request->query('end');
 
-        $since = match ($range) {
-            '7d' => now()->subDays(7),
-            '30d' => now()->subDays(30),
-            default => now()->subDay(),
-        };
+        $startDate = $start ? now()->parse($start)->startOfDay() : now()->subDays(7); // default 7d
+        $endDate = $end ? now()->parse($end)->endOfDay() : now();
+        $since = $startDate;
 
         $summary = $repo->currentSummary();
         $uptimeTrend = $repo->uptimeTrend($since, $bucket);
@@ -37,7 +36,8 @@ class ReportsController
 
         return Inertia::render('Reports/Overview', [
             'filters' => [
-                'range' => $range,
+                'start' => $startDate->toDateString(),
+                'end' => $endDate->toDateString(),
                 'bucket' => $bucket,
                 'since' => $since->toISOString(),
                 'auto' => $auto,

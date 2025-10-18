@@ -2,18 +2,28 @@
     "$schema": "https://json.schemastore.org/package.json",
     "private": true,
     "type": "module",
-    "scripts": {
+  "scripts": {
         "build": "vite build",
-        "dev": "vite"
-    },
+        "dev": "vite",
+        "lint": "eslint --ext .ts,.tsx resources/js",
+        "format": "prettier -w \"resources/**/*.{ts,tsx,css}\"",
+        "format:check": "prettier -c \"resources/**/*.{ts,tsx,css}\""
+  },
     "devDependencies": {
         "@tailwindcss/vite": "^4.1.14",
         "@types/node": "^24.8.1",
         "@types/react": "^19.2.2",
         "@types/react-dom": "^19.2.2",
         "@vitejs/plugin-react": "^5.0.4",
+        "@typescript-eslint/eslint-plugin": "^6.21.0",
+        "@typescript-eslint/parser": "^6.21.0",
         "concurrently": "^9.0.1",
+        "eslint": "^8.57.0",
+        "eslint-config-prettier": "^9.1.0",
+        "eslint-plugin-react": "^7.37.1",
+        "eslint-plugin-react-hooks": "^4.6.0",
         "laravel-vite-plugin": "^2.0.0",
+        "prettier": "^3.3.3",
         "tailwindcss": "^4.1.14",
         "typescript": "^5.9.3",
         "vite": "^7.0.7"
