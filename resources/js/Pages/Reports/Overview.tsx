@@ -1,7 +1,19 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ResponsiveContainer, Line, XAxis, YAxis, Tooltip, CartesianGrid, AreaChart, Area, BarChart, Bar, ComposedChart, LabelList } from 'recharts';
+import {
+    ResponsiveContainer,
+    Line,
+    XAxis,
+    YAxis,
+    Tooltip,
+    CartesianGrid,
+    AreaChart,
+    Area,
+    BarChart,
+    Bar,
+    ComposedChart,
+    LabelList,
+} from 'recharts';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -9,10 +21,14 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Download, Timer, Info } from 'lucide-react';
+import { FileSpreadsheet, Info, CalendarClock } from 'lucide-react';
 import * as React from 'react';
 import { useMemo } from 'react';
 import { Tooltip as Tip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { DateRangePicker, type DateRange } from '@/components/ui/date-range-picker';
+import { DataTable } from '@/components/ui/data-table';
+import type { ColumnDef } from '@tanstack/react-table';
+import ChartTooltip from '@/components/ui/chart-tooltip';
 
 type Summary = { total: number; up: number; down: number; pending: number; maintenance: number };
 type TrendPoint = {
@@ -35,7 +51,7 @@ type LeaderItem = {
 };
 
 type PageProps = {
-    filters: { range: string; bucket: string; since: string; auto?: number };
+    filters: { range: string; bucket: string; since: string; start?: string; end?: string };
     summary: Summary;
     uptimeTrend: TrendPoint[];
     responseTimeTrend: TrendPoint[];
@@ -86,71 +102,63 @@ export default function ReportsOverview() {
         downtimeWindows,
     } = props;
 
-    const [start, setStart] = React.useState<string>((filters as any).start || new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10));
-    const [end, setEnd] = React.useState<string>((filters as any).end || new Date().toISOString().slice(0, 10));
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const [start, setStart] = React.useState<string>(filters.start || todayStr);
+    const [end, setEnd] = React.useState<string>(filters.end || todayStr);
+    const [range, setRange] = React.useState<DateRange | undefined>(() => ({
+        from: start ? new Date(start) : undefined,
+        to: end ? new Date(end) : undefined,
+    }));
+    const [bucket, setBucket] = React.useState<string>(() => {
+        try {
+            return filters.bucket || localStorage.getItem('reports:bucket') || 'hour';
+        } catch {
+            return filters.bucket || 'hour';
+        }
+    });
+    React.useEffect(() => {
+        if (filters.bucket && filters.bucket !== bucket) {
+            setBucket(filters.bucket);
+            try {
+                localStorage.setItem('reports:bucket', filters.bucket);
+            } catch {
+                // ignore storage errors
+            }
+        }
+        if (!filters.bucket) {
+            try {
+                const stored = localStorage.getItem('reports:bucket');
+                if (stored && stored !== bucket) setBucket(stored);
+            } catch {
+                // ignore
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filters.bucket]);
     const onBucketChange = (value: string) => {
+        setBucket(value);
+        try {
+            localStorage.setItem('reports:bucket', value);
+        } catch {
+            // ignore
+        }
         router.get(
             '/reports',
-            { ...(filters as any), bucket: value, start, end },
+            { ...filters, bucket: value, start, end },
             { preserveState: true, preserveScroll: true },
         );
     };
-    const onDateChange = (which: 'start' | 'end', value: string) => {
-        if (which === 'start') setStart(value);
-        else setEnd(value);
-        const params = {
-            ...(filters as any),
-            start: which === 'start' ? value : start,
-            end: which === 'end' ? value : end,
-        };
-        router.get('/reports', params, { preserveState: true, preserveScroll: true });
-    };
-
-    // Refresh controls
-    const [autoMs, setAutoMs] = React.useState<number>(() => {
-        const fromUrl = (() => {
-            try {
-                return parseInt(new URLSearchParams(window.location.search).get('auto') || '');
-            } catch {
-                return NaN;
-            }
-        })();
-        if (!Number.isNaN(fromUrl) && fromUrl >= 0) return fromUrl;
-        const stored = localStorage.getItem('reports:autoRefreshMs');
-        return stored ? parseInt(stored, 10) || 60_000 : 60_000; // default 1m
-    });
-    const intervalRef = React.useRef<number | null>(null);
-    const refresh = React.useCallback(() => {
-        router.reload({
-            only: [
-                'summary',
-                'uptimeTrend',
-                'responseTimeTrend',
-                'leaderboard',
-                'mostDown',
-                'neverDown',
-                'responseStats',
-                'slowestCurrent',
-                'certificates',
-                'flapping',
-                'availabilityAll',
-                'downtimeWindows',
-            ],
-        });
-    }, []);
-  React.useEffect(() => {
-    if (intervalRef.current) {
-      window.clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-        if (autoMs > 0) {
-            intervalRef.current = window.setInterval(() => refresh(), autoMs) as unknown as number;
+    const onRangeChange = (r?: DateRange) => {
+        setRange(r);
+        const s = r?.from ? r.from.toISOString().slice(0, 10) : '';
+        const e = r?.to ? r.to.toISOString().slice(0, 10) : '';
+        if (s) setStart(s);
+        if (e) setEnd(e);
+        if (s && e) {
+            const params = { ...filters, start: s, end: e };
+            router.get('/reports', params, { preserveState: true, preserveScroll: true });
         }
-    localStorage.setItem('reports:autoRefreshMs', String(autoMs));
-        return () => {
-            if (intervalRef.current) window.clearInterval(intervalRef.current);
-        };
-  }, [autoMs, refresh, filters]);
+    };
 
     const uptimeData = useMemo(
         () => uptimeTrend.map((d) => ({ time: d.bucket, pct: d.uptime_percent || 0 })),
@@ -165,6 +173,200 @@ export default function ReportsOverview() {
     React.useEffect(() => {
         setUpdatedAt(new Date());
     }, [props]);
+
+    // DataTable column definitions
+    const colMonitorCell = (r: LeaderItem) => (
+        <div>
+            <div className="truncate font-medium">{r.monitor_name}</div>
+            <div className="truncate text-xs text-muted-foreground hidden sm:block">
+                {r.monitor_url}
+            </div>
+        </div>
+    );
+
+    const colsLeaderboard: ColumnDef<LeaderItem>[] = React.useMemo(
+        () => [
+            {
+                header: 'Monitor',
+                accessorKey: 'monitor_name',
+                cell: ({ row }) => colMonitorCell(row.original),
+            },
+            {
+                header: () => <div className="text-right">Uptime</div>,
+                accessorKey: 'uptime_percent',
+                cell: ({ row }) => (
+                    <div className="text-right">
+                        {row.original.uptime_percent?.toFixed?.(2) ?? row.original.uptime_percent}%
+                    </div>
+                ),
+                meta: { thClassName: 'w-20 text-right', tdClassName: 'w-20 text-right' },
+            },
+        ],
+        [],
+    );
+
+    const colsMostDown: ColumnDef<LeaderItem>[] = React.useMemo(
+        () => [
+            {
+                header: 'Monitor',
+                accessorKey: 'monitor_name',
+                cell: ({ row }) => colMonitorCell(row.original),
+            },
+            {
+                header: () => <div className="text-right">Down</div>,
+                accessorKey: 'down_count',
+                cell: ({ row }) => <div className="text-right">{row.original.down_count}</div>,
+                meta: { thClassName: 'w-16 text-right', tdClassName: 'w-16 text-right' },
+            },
+        ],
+        [],
+    );
+
+    const colsRespStats: ColumnDef<LeaderItem>[] = React.useMemo(
+        () => [
+            {
+                header: 'Monitor',
+                accessorKey: 'monitor_name',
+                cell: ({ row }) => colMonitorCell(row.original),
+            },
+            {
+                header: () => <div className="text-right">Avg</div>,
+                accessorKey: 'avg_ms',
+                cell: ({ row }) => <div className="text-right">{row.original.avg_ms} ms</div>,
+                meta: { thClassName: 'w-26 text-right', tdClassName: 'w-26 text-right' },
+            },
+            {
+                header: () => <div className="text-right">Max</div>,
+                accessorKey: 'max_ms',
+                cell: ({ row }) => <div className="text-right">{row.original.max_ms} ms</div>,
+                meta: { thClassName: 'w-20 text-right', tdClassName: 'w-20 text-right' },
+            },
+        ],
+        [],
+    );
+
+    const colsCertificates: ColumnDef<{
+        monitor_url: string;
+        monitor_name: string;
+        cert_days_remaining: number | null;
+        cert_is_valid: boolean | null;
+    }>[] = React.useMemo(
+        () => [
+            {
+                header: 'Monitor',
+                accessorKey: 'monitor_name',
+                cell: ({ row }) => colMonitorCell(row.original as LeaderItem),
+            },
+            {
+                header: () => <div className="text-right">Days Left</div>,
+                accessorKey: 'cert_days_remaining',
+                cell: ({ row }) => (
+                    <div className="text-right">{row.original.cert_days_remaining ?? '—'}</div>
+                ),
+                meta: { thClassName: 'w-20 text-right', tdClassName: 'w-20 text-right' },
+            },
+            {
+                header: () => <div className="text-right">Valid</div>,
+                accessorKey: 'cert_is_valid',
+                cell: ({ row }) => (
+                    <div className="text-right">
+                        {row.original.cert_is_valid === null
+                            ? '—'
+                            : row.original.cert_is_valid
+                              ? 'Yes'
+                              : 'No'}
+                    </div>
+                ),
+                meta: { thClassName: 'w-16 text-right', tdClassName: 'w-16 text-right' },
+            },
+        ],
+        [],
+    );
+
+    const colsFlapping: ColumnDef<{ monitor_url: string; monitor_name: string; flips: number }>[] =
+        React.useMemo(
+            () => [
+                {
+                    header: 'Monitor',
+                    accessorKey: 'monitor_name',
+                    cell: ({ row }) => colMonitorCell(row.original as unknown as LeaderItem),
+                },
+                {
+                    header: () => <div className="text-right">Flips</div>,
+                    accessorKey: 'flips',
+                    cell: ({ row }) => <div className="text-right">{row.original.flips}</div>,
+                    meta: { thClassName: 'w-16 text-right', tdClassName: 'w-16 text-right' },
+                },
+            ],
+            [],
+        );
+
+    const colsAvailability: ColumnDef<LeaderItem>[] = React.useMemo(
+        () => [
+            {
+                header: 'Monitor',
+                accessorKey: 'monitor_name',
+                cell: ({ row }) => colMonitorCell(row.original),
+            },
+            {
+                header: () => <div className="text-right">Uptime %</div>,
+                accessorKey: 'uptime_percent',
+                cell: ({ row }) => (
+                    <div className="text-right">
+                        {row.original.uptime_percent?.toFixed?.(2) ?? row.original.uptime_percent}%
+                    </div>
+                ),
+                meta: { thClassName: 'w-26 text-right', tdClassName: 'w-26 text-right' },
+            },
+            {
+                header: () => <div className="text-right">Samples</div>,
+                accessorKey: 'total',
+                cell: ({ row }) => <div className="text-right">{row.original.total}</div>,
+                meta: { thClassName: 'w-16 text-right', tdClassName: 'w-16 text-right' },
+            },
+        ],
+        [],
+    );
+
+    const colsDowntime: ColumnDef<{
+        monitor_url: string;
+        monitor_name: string;
+        start_at: string;
+        end_at: string;
+        minutes: number;
+    }>[] = React.useMemo(
+        () => [
+            {
+                header: 'Monitor',
+                accessorKey: 'monitor_name',
+                cell: ({ row }) => (
+                    <div>
+                        <div className="truncate font-medium">{row.original.monitor_name}</div>
+                        <div className="truncate text-xs text-muted-foreground hidden sm:block">
+                            {row.original.monitor_url}
+                        </div>
+                    </div>
+                ),
+            },
+            {
+                header: 'Start',
+                accessorKey: 'start_at',
+                cell: ({ row }) => <span>{formatTimeLabel(row.original.start_at)}</span>,
+            },
+            {
+                header: 'End',
+                accessorKey: 'end_at',
+                cell: ({ row }) => <span>{formatTimeLabel(row.original.end_at)}</span>,
+            },
+            {
+                header: () => <div className="text-right">Minutes</div>,
+                accessorKey: 'minutes',
+                cell: ({ row }) => <div className="text-right">{row.original.minutes}</div>,
+                meta: { thClassName: 'w-16 text-right', tdClassName: 'w-16 text-right' },
+            },
+        ],
+        [],
+    );
 
     return (
         <>
@@ -181,53 +383,45 @@ export default function ReportsOverview() {
                         </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:justify-end">
-                        <Tabs value={filters.range} onValueChange={onRangeChange}>
-                            <TabsList className="flex-wrap gap-1">
-                                <TabsTrigger value="24h">24h</TabsTrigger>
-                                <TabsTrigger value="7d">7d</TabsTrigger>
-                                <TabsTrigger value="30d">30d</TabsTrigger>
-                            </TabsList>
-                        </Tabs>
-                        <Tabs value={filters.bucket} onValueChange={onBucketChange}>
-                            <TabsList className="flex-wrap gap-1">
-                                <TabsTrigger value="minute">Min</TabsTrigger>
-                                <TabsTrigger value="hour">Hour</TabsTrigger>
-                                <TabsTrigger value="day">Day</TabsTrigger>
-                            </TabsList>
-                        </Tabs>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground w-full sm:w-auto">
+                            <span className="sr-only" id="date-range-label">
+                                Date range
+                            </span>
+                            <DateRangePicker
+                                value={range}
+                                onChange={onRangeChange}
+                                className="w-full sm:w-[320px]"
+                            />
+                        </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button
                                     variant="outline"
-                                    className="gap-2"
-                                    aria-label="Auto refresh options"
+                                    size="icon"
+                                    aria-label="Bucket selector"
+                                    className="shrink-0"
                                 >
-                                    <Timer className="h-4 w-4" />
-                                    <span className="hidden sm:inline">Auto</span>
+                                    <CalendarClock className="h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuContent align="end" className="w-40">
                                 {[
-                                    ['Off', 0],
-                                    ['Every 30s', 30_000],
-                                    ['Every 1m', 60_000],
-                                    ['Every 5m', 300_000],
-                                    ['Every 10m', 600_000],
-                                    ['Every 15m', 900_000],
-                                    ['Every 30m', 1_800_000],
-                                ].map(([label, ms]) => (
+                                    ['minute', 'Minute'],
+                                    ['hour', 'Hour'],
+                                    ['day', 'Day'],
+                                ].map(([value, label]) => (
                                     <DropdownMenuItem
-                                        key={String(ms)}
+                                        key={value}
                                         onSelect={(e) => {
                                             e.preventDefault();
-                                            setAutoMs(ms as number);
+                                            onBucketChange(value);
                                         }}
                                     >
                                         <div className="flex w-full items-center justify-between">
-                                            <span>{label as string}</span>
-                                            {autoMs === ms && (
+                                            <span>{label}</span>
+                                            {bucket === value && (
                                                 <span className="text-xs text-muted-foreground">
-                                                    (active)
+                                                    (selected)
                                                 </span>
                                             )}
                                         </div>
@@ -238,7 +432,7 @@ export default function ReportsOverview() {
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" className="gap-2">
-                                    <Download className="h-4 w-4" />{' '}
+                                    <FileSpreadsheet className="h-4 w-4" />
                                     <span className="hidden sm:inline">Export CSV</span>
                                 </Button>
                             </DropdownMenuTrigger>
@@ -258,7 +452,7 @@ export default function ReportsOverview() {
                                 ].map(([label, key]) => (
                                     <DropdownMenuItem key={key} asChild>
                                         <a
-                                            href={`/reports/export?dataset=${key}&range=${filters.range}&bucket=${filters.bucket}&auto=${autoMs}`}
+                                            href={`/reports/export?dataset=${key}&bucket=${bucket}&start=${start}&end=${end}`}
                                             target="_self"
                                         >
                                             {label}
@@ -306,7 +500,7 @@ export default function ReportsOverview() {
 
                 {/* Uptime % over time + Avg response time */}
                 <div className="grid gap-4 lg:grid-cols-2">
-                    <Card>
+                    <Card className="h-full flex flex-col">
                         <CardHeader>
                             <div className="flex items-center justify-between gap-2">
                                 <CardTitle>Uptime %</CardTitle>
@@ -364,16 +558,14 @@ export default function ReportsOverview() {
                                         tickLine={{ stroke: 'var(--border)' }}
                                     />
                                     <Tooltip
-                                        contentStyle={{
-                                            background: 'var(--popover)',
-                                            color: 'var(--popover-foreground)',
-                                            border: '1px solid var(--border)',
-                                            borderRadius: 'var(--radius)',
-                                        }}
-                                        labelStyle={{ color: 'var(--muted-foreground)' }}
-                                        itemStyle={{ color: 'var(--foreground)' }}
-                                        formatter={(v: number | string) => [`${v}%`, 'Uptime']}
-                                        labelFormatter={formatTimeLabel}
+                                        content={
+                                            <ChartTooltip
+                                                valueKey="pct"
+                                                valueLabel="Uptime"
+                                                valueUnit="%"
+                                                labelFormatter={formatTimeLabel}
+                                            />
+                                        }
                                     />
                                     <Area
                                         type="monotone"
@@ -393,7 +585,7 @@ export default function ReportsOverview() {
                             </ResponsiveContainer>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="h-full flex flex-col">
                         <CardHeader>
                             <div className="flex items-center justify-between gap-2">
                                 <CardTitle>Average Response Time</CardTitle>
@@ -450,16 +642,14 @@ export default function ReportsOverview() {
                                         tickLine={{ stroke: 'var(--border)' }}
                                     />
                                     <Tooltip
-                                        contentStyle={{
-                                            background: 'var(--popover)',
-                                            color: 'var(--popover-foreground)',
-                                            border: '1px solid var(--border)',
-                                            borderRadius: 'var(--radius)',
-                                        }}
-                                        labelStyle={{ color: 'var(--muted-foreground)' }}
-                                        itemStyle={{ color: 'var(--foreground)' }}
-                                        formatter={(v: number | string) => [`${v} ms`, 'Avg']}
-                                        labelFormatter={formatTimeLabel}
+                                        content={
+                                            <ChartTooltip
+                                                valueKey="ms"
+                                                valueLabel="Avg"
+                                                valueUnit="ms"
+                                                labelFormatter={formatTimeLabel}
+                                            />
+                                        }
                                     />
                                     <Area
                                         type="monotone"
@@ -489,126 +679,62 @@ export default function ReportsOverview() {
 
                 {/* Leaderboards */}
                 <div className="grid gap-4 lg:grid-cols-2">
-                    <Card>
+                    <Card className="h-full flex flex-col">
                         <CardHeader>
                             <CardTitle>Top Uptime</CardTitle>
                             <CardDescription>Best availability</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-2">
-                            <table className="w-full text-sm">
-                                <thead className="text-xs text-muted-foreground">
-                                    <tr>
-                                        <th className="text-left">Monitor</th>
-                                        <th className="text-right">Uptime</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {leaderboard.map((r) => (
-                                        <tr key={r.monitor_url} className="border-b last:border-0">
-                                            <td className="py-2 pr-2">
-                                                <div className="truncate font-medium">
-                                                    {r.monitor_name}
-                                                </div>
-                                                <div className="truncate text-xs text-muted-foreground hidden sm:block">
-                                                    {r.monitor_url}
-                                                </div>
-                                            </td>
-                                            <td className="py-2 pl-2 text-right font-medium">
-                                                {r.uptime_percent?.toFixed?.(2) ?? r.uptime_percent}
-                                                %
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <CardContent className="flex-1 flex flex-col">
+                            <DataTable
+                                storageKey="reports:leaderboard"
+                                columns={colsLeaderboard}
+                                data={leaderboard}
+                            />
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="h-full flex flex-col">
                         <CardHeader>
                             <CardTitle>Most Down</CardTitle>
                             <CardDescription>Highest down occurrences</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-2">
-                            <table className="w-full text-sm">
-                                <thead className="text-xs text-muted-foreground">
-                                    <tr>
-                                        <th className="text-left">Monitor</th>
-                                        <th className="text-right">Down Count</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {mostDown
-                                        .filter((r) => (r.down_count ?? 0) > 0)
-                                        .map((r) => (
-                                            <tr
-                                                key={r.monitor_url}
-                                                className="border-b last:border-0"
-                                            >
-                                                <td className="py-2 pr-2">
-                                                    <div className="truncate font-medium">
-                                                        {r.monitor_name}
-                                                    </div>
-                                                    <div className="truncate text-xs text-muted-foreground hidden sm:block">
-                                                        {r.monitor_url}
-                                                    </div>
-                                                </td>
-                                                <td className="py-2 pl-2 text-right font-medium">
-                                                    {r.down_count}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    {mostDown.filter((r) => (r.down_count ?? 0) > 0).length === 0 && (
-                                        <tr>
-                                            <td
-                                                colSpan={2}
-                                                className="py-3 text-center text-sm text-muted-foreground"
-                                            >
-                                                No downtime events in the selected range.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                        <CardContent className="flex-1 flex flex-col">
+                            {mostDown.filter((r) => (r.down_count ?? 0) > 0).length > 0 ? (
+                                <DataTable
+                                    storageKey="reports:mostDown"
+                                    columns={colsMostDown}
+                                    data={mostDown.filter((r) => (r.down_count ?? 0) > 0)}
+                                />
+                            ) : (
+                                <p className="text-sm text-muted-foreground">
+                                    No downtime events in the selected range.
+                                </p>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
 
                 {/* Response time stats */}
                 <div className="grid gap-4 lg:grid-cols-2">
-                    <Card>
+                    <Card className="h-full flex flex-col">
                         <CardHeader>
                             <CardTitle>Avg/Max Response Time</CardTitle>
                             <CardDescription>Top by average</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-2">
-                            <table className="w-full text-sm">
-                                <thead className="text-xs text-muted-foreground">
-                                    <tr>
-                                        <th className="text-left">Monitor</th>
-                                        <th className="text-right">Avg</th>
-                                        <th className="text-right">Max</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {responseStats.map((r) => (
-                                        <tr key={r.monitor_url} className="border-b last:border-0">
-                                            <td className="py-2 pr-2">
-                                                <div className="truncate font-medium">
-                                                    {r.monitor_name}
-                                                </div>
-                                                <div className="truncate text-xs text-muted-foreground hidden sm:block">
-                                                    {r.monitor_url}
-                                                </div>
-                                            </td>
-                                            <td className="py-2 pl-2 text-right">{r.avg_ms} ms</td>
-                                            <td className="py-2 pl-2 text-right">{r.max_ms} ms</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <CardContent className="flex-1 flex flex-col">
+                            {responseStats.length > 0 ? (
+                                <DataTable
+                                    storageKey="reports:responseStats"
+                                    columns={colsRespStats}
+                                    data={responseStats}
+                                />
+                            ) : (
+                                <p className="text-sm text-muted-foreground">
+                                    No response stats in the selected range.
+                                </p>
+                            )}
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="h-full flex flex-col">
                         <CardHeader>
                             <div className="flex items-center justify-between gap-2">
                                 <CardTitle>Slowest Now</CardTitle>
@@ -629,11 +755,8 @@ export default function ReportsOverview() {
                             </div>
                             <CardDescription>Based on latest readings</CardDescription>
                         </CardHeader>
-                        <CardContent className="h-auto">
-                            <ResponsiveContainer
-                                width="100%"
-                                height={Math.max(200, slowestCurrent.length * 28)}
-                            >
+                        <CardContent className="h-56 sm:h-72">
+                            <ResponsiveContainer width="100%" height="100%">
                                 <BarChart
                                     layout="vertical"
                                     data={slowestCurrent.map((r) => ({
@@ -663,14 +786,13 @@ export default function ReportsOverview() {
                                         tickLine={{ stroke: 'var(--border)' }}
                                     />
                                     <Tooltip
-                                        contentStyle={{
-                                            background: 'var(--popover)',
-                                            color: 'var(--popover-foreground)',
-                                            border: '1px solid var(--border)',
-                                            borderRadius: 'var(--radius)',
-                                        }}
-                                        itemStyle={{ color: 'var(--foreground)' }}
-                                        formatter={(v: number | string) => [`${v} ms`, 'Response']}
+                                        content={
+                                            <ChartTooltip
+                                                valueKey="ms"
+                                                valueLabel="Response"
+                                                valueUnit="ms"
+                                            />
+                                        }
                                     />
                                     <Bar
                                         dataKey="ms"
@@ -693,188 +815,84 @@ export default function ReportsOverview() {
 
                 {/* Certificates / Flapping */}
                 <div className="grid gap-4 lg:grid-cols-2">
-                    <Card>
+                    <Card className="h-full flex flex-col">
                         <CardHeader>
                             <CardTitle>Certificate Attention</CardTitle>
                             <CardDescription>Invalid or expiring soon</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            {certificates.length === 0 ? (
+                        <CardContent className="flex-1 flex flex-col">
+                            {certificates.length > 0 ? (
+                                <DataTable
+                                    storageKey="reports:certificates"
+                                    columns={colsCertificates}
+                                    data={certificates}
+                                />
+                            ) : (
                                 <p className="text-sm text-muted-foreground">
                                     No certificate issues found.
                                 </p>
-                            ) : (
-                                <table className="w-full text-sm">
-                                    <thead className="text-xs text-muted-foreground">
-                                        <tr>
-                                            <th className="text-left">Monitor</th>
-                                            <th className="text-right">Days Left</th>
-                                            <th className="text-right">Valid</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {certificates.map((r) => (
-                                            <tr
-                                                key={r.monitor_url}
-                                                className="border-b last:border-0"
-                                            >
-                                                <td className="py-2 pr-2">
-                                                    <div className="truncate font-medium">
-                                                        {r.monitor_name}
-                                                    </div>
-                                                    <div className="truncate text-xs text-muted-foreground hidden sm:block">
-                                                        {r.monitor_url}
-                                                    </div>
-                                                </td>
-                                                <td className="py-2 pl-2 text-right">
-                                                    {r.cert_days_remaining ?? '—'}
-                                                </td>
-                                                <td className="py-2 pl-2 text-right">
-                                                    {r.cert_is_valid === null
-                                                        ? '—'
-                                                        : r.cert_is_valid
-                                                          ? 'Yes'
-                                                          : 'No'}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
                             )}
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="h-full flex flex-col">
                         <CardHeader>
                             <CardTitle>Flapping Monitors</CardTitle>
                             <CardDescription>Frequent status flips</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            {flapping.length === 0 ? (
+                        <CardContent className="flex-1 flex flex-col">
+                            {flapping.length > 0 ? (
+                                <DataTable
+                                    storageKey="reports:flapping"
+                                    columns={colsFlapping}
+                                    data={flapping}
+                                />
+                            ) : (
                                 <p className="text-sm text-muted-foreground">
                                     No flapping detected.
                                 </p>
-                            ) : (
-                                <table className="w-full text-sm">
-                                    <thead className="text-xs text-muted-foreground">
-                                        <tr>
-                                            <th className="text-left">Monitor</th>
-                                            <th className="text-right">Flips</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {flapping.map((r) => (
-                                            <tr
-                                                key={r.monitor_url}
-                                                className="border-b last:border-0"
-                                            >
-                                                <td className="py-2 pr-2">
-                                                    <div className="truncate font-medium">
-                                                        {r.monitor_name}
-                                                    </div>
-                                                    <div className="truncate text-xs text-muted-foreground">
-                                                        {r.monitor_url}
-                                                    </div>
-                                                </td>
-                                                <td className="py-2 pl-2 text-right">{r.flips}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
                             )}
                         </CardContent>
                     </Card>
                 </div>
 
                 {/* Availability table */}
-                <Card>
+                <Card className="h-full flex flex-col">
                     <CardHeader>
                         <CardTitle>Availability (All Monitors)</CardTitle>
                         <CardDescription>Within selected range</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead className="text-xs text-muted-foreground">
-                                    <tr>
-                                        <th className="text-left">Monitor</th>
-                                        <th className="text-right">Uptime %</th>
-                                        <th className="text-right">Samples</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {availabilityAll.map((r) => (
-                                        <tr key={r.monitor_url} className="border-b last:border-0">
-                                            <td className="py-2 pr-2">
-                                                <div className="truncate font-medium">
-                                                    {r.monitor_name}
-                                                </div>
-                                                <div className="truncate text-xs text-muted-foreground hidden sm:block">
-                                                    {r.monitor_url}
-                                                </div>
-                                            </td>
-                                            <td className="py-2 pl-2 text-right">
-                                                {r.uptime_percent?.toFixed?.(2) ?? r.uptime_percent}
-                                                %
-                                            </td>
-                                            <td className="py-2 pl-2 text-right">{r.total}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                    <CardContent className="flex-1 flex flex-col">
+                        {availabilityAll.length > 0 ? (
+                            <DataTable
+                                storageKey="reports:availabilityAll"
+                                columns={colsAvailability}
+                                data={availabilityAll}
+                            />
+                        ) : (
+                            <p className="text-sm text-muted-foreground">
+                                No availability data in the selected range.
+                            </p>
+                        )}
                     </CardContent>
                 </Card>
 
                 {/* Downtime windows */}
-                <Card>
+                <Card className="h-full flex flex-col">
                     <CardHeader>
                         <CardTitle>Downtime Windows</CardTitle>
                         <CardDescription>≥ 5 minutes within range</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex-1 flex flex-col">
                         {downtimeWindows.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
                                 No downtime windows detected in the selected range.
                             </p>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead className="text-xs text-muted-foreground">
-                                        <tr>
-                                            <th className="text-left">Monitor</th>
-                                            <th className="text-left">Start</th>
-                                            <th className="text-left">End</th>
-                                            <th className="text-right">Minutes</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {downtimeWindows.map((r, i) => (
-                                            <tr
-                                                key={`${r.monitor_url}-${i}`}
-                                                className="border-b last:border-0"
-                                            >
-                                                <td className="py-2 pr-2">
-                                                    <div className="truncate font-medium">
-                                                        {r.monitor_name}
-                                                    </div>
-                                                    <div className="truncate text-xs text-muted-foreground hidden sm:block">
-                                                        {r.monitor_url}
-                                                    </div>
-                                                </td>
-                                                <td className="py-2 pr-2">
-                                                    {formatTimeLabel(r.start_at)}
-                                                </td>
-                                                <td className="py-2 pr-2">
-                                                    {formatTimeLabel(r.end_at)}
-                                                </td>
-                                                <td className="py-2 pl-2 text-right">
-                                                    {r.minutes}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                            <DataTable
+                                storageKey="reports:downtimeWindows"
+                                columns={colsDowntime}
+                                data={downtimeWindows}
+                            />
                         )}
                     </CardContent>
                 </Card>

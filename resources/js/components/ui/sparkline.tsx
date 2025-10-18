@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip as RTooltip } from 'recharts';
+import ChartTooltip from '@/components/ui/chart-tooltip';
 
 type SparklineProps = {
     data: { value: number; time?: string | number }[];
@@ -15,9 +16,15 @@ export function Sparkline({
     withTooltip = false,
 }: SparklineProps) {
     const gradientId = React.useId();
+    const [hovered, setHovered] = React.useState(false);
     return (
         <ResponsiveContainer width="100%" height={height}>
-            <AreaChart data={data} margin={{ left: 0, right: 0, top: 4, bottom: 0 }}>
+            <AreaChart
+                data={data}
+                margin={{ left: 0, right: 0, top: 4, bottom: 0 }}
+                onMouseMove={() => setHovered(true)}
+                onMouseLeave={() => setHovered(false)}
+            >
                 <defs>
                     <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor={colorVar} stopOpacity={0.35} />
@@ -26,20 +33,9 @@ export function Sparkline({
                 </defs>
                 <XAxis dataKey="time" hide />
                 <YAxis hide domain={[0, 'auto']} />
-                {withTooltip && (
+                {withTooltip && hovered && (
                     <RTooltip
-                        contentStyle={{
-                            background: 'var(--popover)',
-                            color: 'var(--popover-foreground)',
-                            border: '1px solid var(--border)',
-                            borderRadius: 'var(--radius)',
-                        }}
-                        labelStyle={{ color: 'var(--muted-foreground)' }}
-                        formatter={(v: number | string) => [`${v} ms`, 'Avg']}
-                        labelFormatter={(l: string | number) => {
-                            const d = new Date(l);
-                            return isNaN(d.getTime()) ? String(l) : d.toLocaleString();
-                        }}
+                        content={<ChartTooltip valueKey="value" valueLabel="Avg" valueUnit="ms" />}
                     />
                 )}
                 <Area

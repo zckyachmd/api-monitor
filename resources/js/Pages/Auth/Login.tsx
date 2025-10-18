@@ -82,6 +82,6 @@ export default function Login() {
     );
 }
 
-(Login as unknown as { layout?: (page: React.ReactNode) => React.ReactNode }).layout = (page: React.ReactNode) => (
-    <AuthLayout>{page}</AuthLayout>
-);
+(Login as unknown as { layout?: (page: React.ReactNode) => React.ReactNode }).layout = (
+    page: React.ReactNode,
+) => <AuthLayout>{page}</AuthLayout>;

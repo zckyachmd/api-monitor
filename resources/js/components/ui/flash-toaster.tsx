@@ -49,7 +49,7 @@ export function FlashToaster() {
         }
 
         last.current = { title: msg.title, description: msg.description, type: msg.type };
-    }, [props.flash?.title, props.flash?.description, props.flash?.type]);
+    }, [props.flash, props.flash?.title, props.flash?.description, props.flash?.type]);
 
     return null;
 }

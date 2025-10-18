@@ -17,6 +17,7 @@ import {
     ChevronsDown,
     ChevronsUp,
     Gauge,
+    RefreshCw,
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -57,7 +58,7 @@ type MonitorItem = {
 };
 
 type PageProps = {
-    filters: { range: string; since: string; auto?: number };
+    filters?: { auto?: number };
     summary: { total: number; up: number; down: number; pending: number; maintenance: number };
     monitors: MonitorItem[];
     series: {
@@ -96,7 +97,17 @@ function pct(v?: number | null) {
 export default function Dashboard() {
     const { props } = usePage<PageProps>();
     const { filters, summary, monitors, series } = props;
-    const [order, setOrder] = React.useState<string[]>([]);
+    const [order, setOrder] = React.useState<string[]>(() => {
+        try {
+            const urls = monitors.map((m) => m.monitor_url);
+            const saved = JSON.parse(localStorage.getItem('dashboard:cardOrder') || '[]') as string[];
+            const valid = saved.filter((u) => urls.includes(u));
+            const remainder = urls.filter((u) => !valid.includes(u));
+            return [...valid, ...remainder];
+        } catch {
+            return monitors.map((m) => m.monitor_url);
+        }
+    });
     const [dragging, setDragging] = React.useState<string | null>(null);
     const [dragOver, setDragOver] = React.useState<string | null>(null);
     const [updatedAt, setUpdatedAt] = React.useState<Date>(new Date());
@@ -118,19 +129,16 @@ export default function Dashboard() {
         setUpdatedAt(new Date());
     }, [props]);
 
-    // Initialize card order from localStorage once monitors are available
+    // Keep order in sync when monitors list changes (avoid flicker by preserving existing order)
     React.useEffect(() => {
         const urls = monitors.map((m) => m.monitor_url);
-        const saved = (() => {
-            try {
-                return JSON.parse(localStorage.getItem('dashboard:cardOrder') || '[]');
-            } catch {
-                return [];
-            }
-        })() as string[];
-        const valid = saved.filter((u) => urls.includes(u));
-        const remainder = urls.filter((u) => !valid.includes(u));
-        setOrder([...valid, ...remainder]);
+        setOrder((prev) => {
+            const valid = prev.filter((u) => urls.includes(u));
+            const remainder = urls.filter((u) => !valid.includes(u));
+            const next = [...valid, ...remainder];
+            if (next.length === prev.length && next.every((u, i) => u === prev[i])) return prev;
+            return next;
+        });
     }, [monitors]);
 
     const displayed = React.useMemo(() => {
@@ -166,7 +174,7 @@ export default function Dashboard() {
         try {
             navigator.clipboard.writeText(u);
             toast.success('Endpoint copied');
-        } catch (e) {
+        } catch {
             // noop
         }
     }
@@ -189,12 +197,16 @@ export default function Dashboard() {
             intervalRef.current = window.setInterval(() => refresh(), autoMs) as unknown as number;
         }
         localStorage.setItem('dashboard:autoRefreshMs', String(autoMs));
-        router.get('/dashboard', { ...filters, auto: autoMs }, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-            only: ['summary', 'monitors'],
-        });
+        router.get(
+            '/dashboard',
+            { ...filters, since: '24h', auto: autoMs },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: ['summary', 'monitors'],
+            },
+        );
         return () => {
             if (intervalRef.current) window.clearInterval(intervalRef.current);
         };
@@ -213,6 +225,16 @@ export default function Dashboard() {
                         </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:justify-end">
+                        <Button
+                            variant="outline"
+                            className="gap-2"
+                            aria-label="Refresh now"
+                            onClick={refresh}
+                            disabled={loading}
+                        >
+                            <RefreshCw className={"h-4 w-4 " + (loading ? 'animate-spin' : '')} />
+                            <span className="hidden sm:inline">Refresh</span>
+                        </Button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button
@@ -221,7 +243,20 @@ export default function Dashboard() {
                                     aria-label="Auto refresh options"
                                 >
                                     <Timer className="h-4 w-4" />
-                                    <span className="hidden sm:inline">Auto</span>
+                                    <span>
+                                        {(() => {
+                                            const map: Record<number, string> = {
+                                                0: 'Off',
+                                                30000: '30s',
+                                                60000: '1m',
+                                                300000: '5m',
+                                                600000: '10m',
+                                                900000: '15m',
+                                                1800000: '30m',
+                                            };
+                                            return map[autoMs] ?? `${Math.round(autoMs / 1000)}s`;
+                                        })()}
+                                    </span>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
@@ -267,7 +302,23 @@ export default function Dashboard() {
                     </Card>
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-green-600 dark:text-green-400">Up</CardTitle>
+                            <div className="flex items-center justify-between gap-2">
+                                <CardTitle className="text-green-600 dark:text-green-400">Up</CardTitle>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            type="button"
+                                            title="What is Up?"
+                                            className="inline-flex h-5 w-5 items-center justify-center text-muted-foreground"
+                                        >
+                                            <Info className="h-3.5 w-3.5" />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Monitors currently operational. Sparkline shows count over last 24h.
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
                             <CardDescription>Currently operational</CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -285,9 +336,23 @@ export default function Dashboard() {
                     </Card>
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-amber-600 dark:text-amber-400">
-                                Pending
-                            </CardTitle>
+                            <div className="flex items-center justify-between gap-2">
+                                <CardTitle className="text-amber-600 dark:text-amber-400">Pending</CardTitle>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            type="button"
+                                            title="What is Pending?"
+                                            className="inline-flex h-5 w-5 items-center justify-center text-muted-foreground"
+                                        >
+                                            <Info className="h-3.5 w-3.5" />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Monitors with checks in progress. Sparkline shows count over last 24h.
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
                             <CardDescription>Checks in progress</CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -305,7 +370,23 @@ export default function Dashboard() {
                     </Card>
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-red-600 dark:text-red-400">Down</CardTitle>
+                            <div className="flex items-center justify-between gap-2">
+                                <CardTitle className="text-red-600 dark:text-red-400">Down</CardTitle>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            type="button"
+                                            title="What is Down?"
+                                            className="inline-flex h-5 w-5 items-center justify-center text-muted-foreground"
+                                        >
+                                            <Info className="h-3.5 w-3.5" />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Monitors currently failing. Sparkline shows count over last 24h.
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
                             <CardDescription>Currently failing</CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -493,7 +574,8 @@ export default function Dashboard() {
                                                               </div>
                                                           ) : null}
                                                           {(m.cert_is_valid === false ||
-                                                              ((m.cert_is_valid == null || m.cert_is_valid === true) &&
+                                                              ((m.cert_is_valid == null ||
+                                                                  m.cert_is_valid === true) &&
                                                                   typeof m.cert_days_remaining ===
                                                                       'number')) && (
                                                               <div className="col-span-2 grid grid-cols-2 gap-3">
@@ -547,6 +629,8 @@ export default function Dashboard() {
                                                                           type="button"
                                                                           title="Average response time per minute"
                                                                           className="inline-flex h-5 w-5 items-center justify-center text-muted-foreground"
+                                                                          tabIndex={-1}
+                                                                          aria-hidden="true"
                                                                       >
                                                                           <Info className="h-3.5 w-3.5" />
                                                                       </button>

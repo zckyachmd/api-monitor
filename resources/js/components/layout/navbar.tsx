@@ -1,7 +1,9 @@
 import { Link, usePage, router } from '@inertiajs/react';
+import * as React from 'react';
+import { cn } from '@/lib/utils';
 import { ModeToggle } from '@/components/theme/mode-toggle';
 import { Button } from '@/components/ui/button';
-import { User, CreditCard, LogOut, Settings, ActivitySquare } from 'lucide-react';
+import { User, CreditCard, LogOut, Settings, ActivitySquare, ExternalLink, Menu } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     DropdownMenu,
@@ -27,10 +29,26 @@ export function Navbar() {
         .join('')
         .slice(0, 2)
         .toUpperCase();
+    const kumaUrl = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_KUMA_URL as
+        | string
+        | undefined;
+    const [mobileOpen, setMobileOpen] = React.useState(false);
     return (
         <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4">
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-3 sm:gap-6">
+                    {/* Mobile menu toggle on the left */}
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="sm:hidden"
+                        aria-label="Toggle navigation menu"
+                        aria-expanded={mobileOpen}
+                        aria-controls="mobile-subnav"
+                        onClick={() => setMobileOpen((v) => !v)}
+                    >
+                        <Menu className="h-4 w-4" />
+                    </Button>
                     <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
                         <ActivitySquare className="h-4 w-4" />
                         <span>API Monitor</span>
@@ -48,6 +66,16 @@ export function Navbar() {
                         >
                             Reports
                         </Link>
+                        {kumaUrl && (
+                            <a
+                                href={kumaUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                            >
+                                Uptime Kuma <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                        )}
                     </nav>
                 </div>
                 <div className="flex items-center gap-2">
@@ -127,6 +155,43 @@ export function Navbar() {
                         </Button>
                     )}
                 </div>
+            </div>
+            {/* Mobile sub-nav (floating, solid background, with slide animation) */}
+            <div
+                id="mobile-subnav"
+                className={cn(
+                    'sm:hidden fixed inset-x-0 top-14 z-50 border-b bg-background shadow-md transform transition-all duration-200 ease-out',
+                    mobileOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-3 pointer-events-none',
+                )}
+                aria-hidden={!mobileOpen}
+            >
+                <nav className="mx-auto max-w-7xl px-4 py-3 flex flex-col gap-3">
+                    <Link
+                        href="/dashboard"
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={() => setMobileOpen(false)}
+                    >
+                        Dashboard
+                    </Link>
+                    <Link
+                        href="/reports"
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={() => setMobileOpen(false)}
+                    >
+                        Reports
+                    </Link>
+                    {kumaUrl && (
+                        <a
+                            href={kumaUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                            onClick={() => setMobileOpen(false)}
+                        >
+                            Uptime Kuma <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                    )}
+                </nav>
             </div>
         </header>
     );
