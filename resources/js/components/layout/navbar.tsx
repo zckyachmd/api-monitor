@@ -3,7 +3,15 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { ModeToggle } from '@/components/theme/mode-toggle';
 import { Button } from '@/components/ui/button';
-import { User, CreditCard, LogOut, Settings, ActivitySquare, ExternalLink, Menu } from 'lucide-react';
+import {
+    User,
+    CreditCard,
+    LogOut,
+    Settings,
+    ActivitySquare,
+    ExternalLink,
+    Menu,
+} from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     DropdownMenu,
@@ -29,9 +37,8 @@ export function Navbar() {
         .join('')
         .slice(0, 2)
         .toUpperCase();
-    const kumaUrl = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_KUMA_URL as
-        | string
-        | undefined;
+    const kumaUrl = (import.meta as unknown as { env?: Record<string, string> }).env
+        ?.VITE_KUMA_URL as string | undefined;
     const [mobileOpen, setMobileOpen] = React.useState(false);
     return (
         <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -161,7 +168,9 @@ export function Navbar() {
                 id="mobile-subnav"
                 className={cn(
                     'sm:hidden fixed inset-x-0 top-14 z-50 border-b bg-background shadow-md transform transition-all duration-200 ease-out',
-                    mobileOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-3 pointer-events-none',
+                    mobileOpen
+                        ? 'opacity-100 translate-y-0 pointer-events-auto'
+                        : 'opacity-0 -translate-y-3 pointer-events-none',
                 )}
                 aria-hidden={!mobileOpen}
             >

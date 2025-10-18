@@ -4,7 +4,7 @@ import AdminLayout from '@/layouts/AdminLayout';
 import { Toaster } from '@/components/ui/sonner-toaster';
 import type React from 'react';
 
-const pages = import.meta.glob('./Pages/**/*.tsx');
+const pages = import.meta.glob('./pages/**/*.tsx');
 
 createInertiaApp({
     title: (title?: string) =>
@@ -12,7 +12,7 @@ createInertiaApp({
             ? `${title} - ${import.meta.env.VITE_APP_NAME || 'Laravel'}`
             : import.meta.env.VITE_APP_NAME || 'Laravel',
     resolve: async (name) => {
-        const importPage = pages[`./Pages/${name}.tsx`];
+        const importPage = pages[`./pages/${name}.tsx`];
         if (!importPage) throw new Error(`Page not found: ${name}`);
         type PageComponent = React.ComponentType & {
             layout?: (page: React.ReactNode) => React.ReactNode;

@@ -6,6 +6,7 @@
         "build": "vite build",
         "dev": "vite",
         "lint": "eslint --ext .ts,.tsx resources/js",
+        "types": "tsc --noEmit -p tsconfig.json",
         "format": "prettier -w \"resources/**/*.{ts,tsx,css}\"",
         "format:check": "prettier -c \"resources/**/*.{ts,tsx,css}\""
     },
