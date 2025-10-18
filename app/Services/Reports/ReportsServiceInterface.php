@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Reports;
 
 interface ReportsServiceInterface
 {
@@ -14,4 +14,3 @@ interface ReportsServiceInterface
      */
     public function buildExport(string $dataset, string $range, string $bucket): array;
 }
-

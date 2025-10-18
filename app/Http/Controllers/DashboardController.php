@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\MonitorServiceInterface;
+use App\Services\Monitor\MonitorServiceInterface;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 

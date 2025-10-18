@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Monitor;
 
 interface MonitorServiceInterface
 {
@@ -10,4 +10,3 @@ interface MonitorServiceInterface
      */
     public function getData(string $range): array;
 }
-

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Monitor;
 
 use App\Enums\MonitorStatus;
 use App\Repositories\Monitoring\MonitorMetricsRepositoryInterface as Repo;

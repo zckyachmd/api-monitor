@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Reports;
 
 use App\Repositories\Monitoring\MonitorMetricsRepositoryInterface as Repo;
 

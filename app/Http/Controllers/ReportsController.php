@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\ReportsServiceInterface;
+use App\Services\Reports\ReportsServiceInterface;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;

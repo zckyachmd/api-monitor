@@ -7,10 +7,10 @@ use App\Services\Kuma\KumaServiceInterface;
 use App\Services\Kuma\KumaService;
 use App\Repositories\Monitoring\MonitorMetricsRepositoryInterface;
 use App\Repositories\Monitoring\MonitorMetricsRepository;
-use App\Services\MonitorServiceInterface;
-use App\Services\MonitorService;
-use App\Services\ReportsServiceInterface;
-use App\Services\ReportsService;
+use App\Services\Monitor\MonitorServiceInterface;
+use App\Services\Monitor\MonitorService;
+use App\Services\Reports\ReportsServiceInterface;
+use App\Services\Reports\ReportsService;
 
 class AppServiceProvider extends ServiceProvider
 {
