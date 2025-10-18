@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services\Monitor;
+namespace App\Services\Monitoring;
 
-interface MonitorServiceInterface
+interface MonitoringServiceInterface
 {
     /**
      * Build monitoring data for dashboard consumption.

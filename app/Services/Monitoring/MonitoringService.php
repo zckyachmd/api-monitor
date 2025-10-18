@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Services\Monitor;
+namespace App\Services\Monitoring;
 
 use App\Enums\MonitorStatus;
 use App\Repositories\Monitoring\MonitorMetricsRepositoryInterface as Repo;
 use Illuminate\Support\Facades\DB;
 
-class MonitorService implements MonitorServiceInterface
+class MonitoringService implements MonitoringServiceInterface
 {
     public function __construct(private Repo $repo)
     {
