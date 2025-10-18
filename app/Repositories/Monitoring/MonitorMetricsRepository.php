@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Repositories\UptimeKuma;
+namespace App\Repositories\Monitoring;
 
 use App\Enums\MonitorStatus;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
-class UptimeKumaMetricsRepository implements UptimeKumaMetricsRepositoryInterface
+class MonitorMetricsRepository implements MonitorMetricsRepositoryInterface
 {
     public function latestPerMonitor(): Collection
     {
@@ -167,7 +167,6 @@ class UptimeKumaMetricsRepository implements UptimeKumaMetricsRepositoryInterfac
 
     public function certificatesAttentionList(int $daysThreshold = 30): Collection
     {
-        // Use each monitor's latest row
         $latest = $this->latestPerMonitor();
 
         return $latest->filter(function ($row) use ($daysThreshold) {
@@ -265,12 +264,10 @@ class UptimeKumaMetricsRepository implements UptimeKumaMetricsRepositoryInterfac
                 ];
             }
 
-            // open window when first hit DOWN
             if ($r->status === MonitorStatus::DOWN->value && $current[$key]['down_start'] === null) {
                 $current[$key]['down_start'] = $r->fetched_at;
             }
 
-            // close window when recover to non-DOWN from DOWN
             if ($r->status !== MonitorStatus::DOWN->value && $current[$key]['down_start'] !== null) {
                 $start = new \DateTime($current[$key]['down_start']);
                 $end = new \DateTime($r->fetched_at);
@@ -290,7 +287,6 @@ class UptimeKumaMetricsRepository implements UptimeKumaMetricsRepositoryInterfac
             $current[$key]['last_time'] = $r->fetched_at;
         }
 
-        // If ends still down, close at last_time
         foreach ($current as $c) {
             if ($c['down_start'] !== null) {
                 $start = new \DateTime($c['down_start']);
@@ -328,7 +324,6 @@ class UptimeKumaMetricsRepository implements UptimeKumaMetricsRepositoryInterfac
 
     public function availabilityByMonitor(?\DateTimeInterface $since = null, string $direction = 'desc'): Collection
     {
-        // Reuse leaderboard without limit
         $q = DB::table('uptime_kuma_metrics')
             ->select(
                 'monitor_url',
@@ -349,10 +344,6 @@ class UptimeKumaMetricsRepository implements UptimeKumaMetricsRepositoryInterfac
         return $q->get();
     }
 
-    /**
-     * Build a DB expression that truncates fetched_at to given bucket.
-     * Returns array [expression, alias]
-     */
     protected function bucketExpression(string $bucket): array
     {
         $bucket = strtolower($bucket);
@@ -383,7 +374,6 @@ class UptimeKumaMetricsRepository implements UptimeKumaMetricsRepositoryInterfac
             };
         }
 
-        // Fallback: minute-level using raw fetched_at
         return ["fetched_at", $alias];
     }
 }

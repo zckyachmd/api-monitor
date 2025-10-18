@@ -3,10 +3,14 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use App\Services\UptimeKuma\UptimeKumaServiceInterface;
-use App\Services\UptimeKuma\UptimeKumaService;
-use App\Repositories\UptimeKuma\UptimeKumaMetricsRepositoryInterface;
-use App\Repositories\UptimeKuma\UptimeKumaMetricsRepository;
+use App\Services\Kuma\KumaServiceInterface;
+use App\Services\Kuma\KumaService;
+use App\Repositories\Monitoring\MonitorMetricsRepositoryInterface;
+use App\Repositories\Monitoring\MonitorMetricsRepository;
+use App\Services\MonitorServiceInterface;
+use App\Services\MonitorService;
+use App\Services\ReportsServiceInterface;
+use App\Services\ReportsService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,8 +19,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(UptimeKumaServiceInterface::class, UptimeKumaService::class);
-        $this->app->singleton(UptimeKumaMetricsRepositoryInterface::class, UptimeKumaMetricsRepository::class);
+        $this->app->singleton(KumaServiceInterface::class, KumaService::class);
+        $this->app->singleton(MonitorMetricsRepositoryInterface::class, MonitorMetricsRepository::class);
+        $this->app->singleton(MonitorServiceInterface::class, MonitorService::class);
+        $this->app->singleton(ReportsServiceInterface::class, ReportsService::class);
     }
 
     /**

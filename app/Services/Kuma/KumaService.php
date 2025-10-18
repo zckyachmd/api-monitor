@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Services\UptimeKuma;
+namespace App\Services\Kuma;
 
 use Illuminate\Support\Facades\Http;
 
-class UptimeKumaService implements UptimeKumaServiceInterface
+class KumaService implements KumaServiceInterface
 {
     public function fetchMetricsText(?string $baseUrl = null): string
     {
@@ -17,12 +17,10 @@ class UptimeKumaService implements UptimeKumaServiceInterface
             throw new \RuntimeException('UPTIME_KUMA_URL is not configured.');
         }
 
-        // Metrics endpoint is fixed to '/metrics'
         $url = rtrim($base, '/').'/metrics';
 
         $request = Http::timeout($timeout)->withOptions(['verify' => $verifyTls]);
         if ($apiKey !== '') {
-            // Use Basic auth with empty username and API key as password
             $basic = base64_encode(':' . $apiKey);
             $request = $request->withHeaders(['Authorization' => 'Basic '.$basic]);
         }
@@ -124,3 +122,4 @@ class UptimeKumaService implements UptimeKumaServiceInterface
         return $v === '' || strtolower($v) === 'null' ? null : $v;
     }
 }
+

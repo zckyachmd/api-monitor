@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services\UptimeKuma;
+namespace App\Services\Kuma;
 
-interface UptimeKumaServiceInterface
+interface KumaServiceInterface
 {
     /**
      * Fetch raw Prometheus metrics text from Uptime Kuma.

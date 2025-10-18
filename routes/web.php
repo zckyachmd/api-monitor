@@ -8,14 +8,20 @@ use App\Http\Controllers\ReportsController;
 
 Route::redirect('/', '/dashboard');
 
-Route::get('/login', function (Request $request) {
-    if ($request->user()) {
-        return redirect('/dashboard');
-    }
-    return Inertia::render('Auth/Login');
-})->name('login')->middleware('guest');
+Route::middleware('guest')->group(function () {
+    Route::get('/login', function (Request $request) {
+        if ($request->user()) {
+            return redirect('/dashboard');
+        }
+        return Inertia::render('Auth/Login');
+    })->name('login');
+});
 
-Route::get('/dashboard', DashboardController::class)->middleware('auth');
+Route::middleware('auth')->group(function () {
+    Route::get('/dashboard', DashboardController::class);
 
-Route::get('/reports', [ReportsController::class, 'index'])->middleware('auth');
-Route::get('/reports/export', [ReportsController::class, 'export'])->middleware('auth');
+    Route::prefix('reports')->group(function () {
+        Route::get('/', [ReportsController::class, 'index']);
+        Route::get('/export', [ReportsController::class, 'export']);
+    });
+});

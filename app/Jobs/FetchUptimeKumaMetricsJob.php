@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\UptimeKumaMetric;
-use App\Services\UptimeKuma\UptimeKumaServiceInterface;
+use App\Services\Kuma\KumaServiceInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -35,7 +35,7 @@ class FetchUptimeKumaMetricsJob implements ShouldQueue
         return ['kuma', 'uptime-kuma'];
     }
 
-    public function handle(UptimeKumaServiceInterface $service): void
+    public function handle(KumaServiceInterface $service): void
     {
         $monitors = $service->fetchAndParse($this->baseUrl);
 
