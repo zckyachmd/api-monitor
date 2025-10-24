@@ -5,6 +5,7 @@ import { SummaryCards } from '@/pages/Dashboard/components/SummaryCards';
 import { MonitorsGrid } from '@/pages/Dashboard/components/MonitorsGrid';
 import type { DashboardData, DashboardPageProps } from '@/pages/Dashboard/types';
 import { toast } from 'sonner';
+import getEcho, { type EchoLike, type ChannelLike } from '@/lib/echo';
 
 export default function Dashboard() {
     const { props } = usePage<DashboardPageProps>();
@@ -12,32 +13,16 @@ export default function Dashboard() {
     const [data, setData] = React.useState<DashboardData>({ summary, monitors, series });
 
     const [updatedAt, setUpdatedAt] = React.useState<Date>(new Date());
-    const [autoMs, setAutoMs] = React.useState<number>(() => {
-        const fromUrl = (() => {
-            try {
-                return parseInt(new URLSearchParams(window.location.search).get('auto') || '');
-            } catch {
-                return NaN;
-            }
-        })();
-        if (!Number.isNaN(fromUrl) && fromUrl >= 0) return fromUrl;
-        const stored = localStorage.getItem('dashboard:autoRefreshMs');
-        return stored ? parseInt(stored, 10) || 30_000 : 30_000;
-    });
-    const [loading, setLoading] = React.useState(false);
-    const intervalRef = React.useRef<number | null>(null);
     const abortRef = React.useRef<AbortController | null>(null);
     const reqIdRef = React.useRef(0);
 
     React.useEffect(() => {
-        // Sync initial server props on first load/navigation
         setData({ summary, monitors, series });
         setUpdatedAt(new Date());
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [summary, monitors, series]);
 
     const refresh = React.useCallback(async () => {
-        // cancel previous request if any
         if (abortRef.current) {
             abortRef.current.abort();
         }
@@ -45,7 +30,6 @@ export default function Dashboard() {
         abortRef.current = controller;
         const myId = ++reqIdRef.current;
 
-        setLoading(true);
         try {
             const qs = new URLSearchParams({ range: String(filters?.range || '24h') });
             const res = await fetch(`/dashboard/data?${qs.toString()}`, {
@@ -59,57 +43,66 @@ export default function Dashboard() {
             });
             if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
             const json = (await res.json()) as DashboardData;
-            // only apply if this is the latest request
             if (myId === reqIdRef.current) {
                 setData(json);
                 setUpdatedAt(new Date());
             }
-        } catch (e: any) {
-            if (e?.name === 'AbortError') {
+        } catch (e: unknown) {
+            const err = (e && typeof e === 'object') ? (e as { name?: string; message?: unknown }) : {};
+            if (err.name === 'AbortError') {
                 // ignore aborted requests
             } else {
-                toast.error('Failed to refresh dashboard', {
-                    description: typeof e?.message === 'string' ? e.message : undefined,
-                });
+                const msg = typeof err.message === 'string' ? err.message : undefined;
+                toast.error('Failed to refresh dashboard', { description: msg });
             }
-        } finally {
-            setLoading(false);
         }
     }, [filters?.range]);
 
     React.useEffect(() => {
-        if (intervalRef.current) {
-            window.clearInterval(intervalRef.current);
-            intervalRef.current = null;
-        }
-        if (autoMs > 0) {
-            intervalRef.current = window.setInterval(() => refresh(), autoMs) as unknown as number;
-        }
-        localStorage.setItem('dashboard:autoRefreshMs', String(autoMs));
-        // Keep URL in sync without Inertia request
-        try {
-            const url = new URL(window.location.href);
-            url.searchParams.set('auto', String(autoMs));
-            window.history.replaceState({}, '', url.toString());
-        } catch {}
         return () => {
-            if (intervalRef.current) window.clearInterval(intervalRef.current);
-            // abort any in-flight request on cleanup
             if (abortRef.current) abortRef.current.abort();
         };
-    }, [autoMs, refresh]);
+    }, []);
+
+    React.useEffect(() => {
+        const range = String(filters?.range || '24h');
+        const echo: EchoLike | null = getEcho();
+        if (!echo) return;
+
+        const channelName = `dashboard.metrics.${range}`;
+        const channel: ChannelLike = echo.channel(channelName);
+        const handler = async (evt: unknown) => {
+            const obj = (evt && typeof evt === 'object') ? (evt as Record<string, unknown>) : null;
+            const payload = (obj && 'payload' in obj ? obj.payload : evt) as unknown;
+            if (!payload) return;
+            if (
+                payload &&
+                typeof payload === 'object' &&
+                'summary' in (payload as Record<string, unknown>) &&
+                'monitors' in (payload as Record<string, unknown>) &&
+                'series' in (payload as Record<string, unknown>)
+            ) {
+                const p = payload as DashboardData;
+                setData({ summary: p.summary, monitors: p.monitors, series: p.series });
+                setUpdatedAt(new Date());
+            } else {
+                await refresh();
+            }
+        };
+        channel.listen('.dashboard.data', handler);
+
+        return () => {
+            if (channel && typeof channel.stopListening === 'function') {
+                channel.stopListening('.dashboard.data');
+            }
+        };
+    }, [filters?.range, refresh]);
 
     return (
         <>
             <Head title="Dashboard" />
             <div className="space-y-6">
-                <HeaderToolbar
-                    updatedAt={updatedAt}
-                    loading={loading}
-                    autoMs={autoMs}
-                    onRefresh={refresh}
-                    onChangeAuto={setAutoMs}
-                />
+                <HeaderToolbar updatedAt={updatedAt} />
                 <SummaryCards summary={data.summary} series={data.series} />
                 <MonitorsGrid monitors={data.monitors} />
             </div>

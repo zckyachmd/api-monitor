@@ -3,7 +3,12 @@
 namespace App\Jobs;
 
 use App\Models\UptimeKumaMetric;
+use App\Events\DashboardDataUpdated;
 use App\Services\Kuma\KumaServiceInterface;
+use App\Services\Monitoring\MonitoringServiceInterface;
+use App\Repositories\Monitoring\MonitorMetricsRepositoryInterface as MetricsRepo;
+use App\Enums\MonitorStatus;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -35,7 +40,7 @@ class FetchUptimeKumaMetricsJob implements ShouldQueue
         return ['kuma', 'uptime-kuma'];
     }
 
-    public function handle(KumaServiceInterface $service): void
+    public function handle(KumaServiceInterface $service, MonitoringServiceInterface $monitoring, MetricsRepo $metricsRepo): void
     {
         $monitors = $service->fetchAndParse($this->baseUrl);
 
@@ -55,7 +60,52 @@ class FetchUptimeKumaMetricsJob implements ShouldQueue
             ]);
         }
 
-        Log::info('Uptime Kuma metrics stored', [
+        try {
+            $latest = $metricsRepo->latestPerMonitor();
+            $digestParts = [
+                'total' => $latest->count(),
+                'up' => $latest->where('status', MonitorStatus::UP->value)->count(),
+                'down' => $latest->where('status', MonitorStatus::DOWN->value)->count(),
+                'pending' => $latest->where('status', MonitorStatus::PENDING->value)->count(),
+                'maintenance' => $latest->where('status', MonitorStatus::MAINTENANCE->value)->count(),
+                'monitors' => $latest->map(function ($r) {
+                    return [
+                        'u' => (string) $r->monitor_url,
+                        's' => isset($r->status) ? (int) $r->status : null,
+                        'rt' => isset($r->response_time_ms) ? (int) $r->response_time_ms : null,
+                        'cd' => isset($r->cert_days_remaining) ? (int) $r->cert_days_remaining : null,
+                        'cv' => isset($r->cert_is_valid) ? (bool) $r->cert_is_valid : null,
+                    ];
+                })->toArray(),
+            ];
+            $hash = md5(json_encode($digestParts));
+            $key = 'dashboard:state_hash';
+            $prev = Cache::get($key);
+
+            if ($prev === $hash) {
+                Log::info('No dashboard changes detected; skipping broadcast ticks');
+            } else {
+                Cache::put($key, $hash, 86400);
+                foreach (['24h', '7d', '30d'] as $range) {
+                    try {
+                        broadcast(new DashboardDataUpdated($range, [
+                            'range' => $range,
+                            'ts' => now()->toISOString(),
+                            'type' => 'tick',
+                        ]));
+                    } catch (\Throwable $e) {
+                        Log::warning('Failed broadcasting dashboard tick', [
+                            'range' => $range,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed computing dashboard digest', ['error' => $e->getMessage()]);
+        }
+
+        Log::info('Uptime Kuma metrics stored and broadcast ticks sent', [
             'count' => count($monitors),
             'baseUrl' => $this->baseUrl ?? config('uptime-kuma.base_url'),
         ]);

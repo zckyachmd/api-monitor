@@ -29,7 +29,9 @@ export function SummaryCards({ summary }: { summary: Summary }) {
                 <CardHeader className="group">
                     <div className="flex items-center gap-2">
                         <Timer className="h-4 w-4 text-amber-600 dark:text-amber-400 transition-transform duration-150 group-hover:scale-110" />
-                        <CardTitle className="text-amber-600 dark:text-amber-400">Pending</CardTitle>
+                        <CardTitle className="text-amber-600 dark:text-amber-400">
+                            Pending
+                        </CardTitle>
                     </div>
                     <CardDescription>Checks in progress</CardDescription>
                 </CardHeader>

@@ -33,18 +33,29 @@ export function HeaderToolbar({
             <div>
                 <h1 className="text-2xl font-semibold">Reports</h1>
                 <p className="text-sm text-muted-foreground">Uptime Kuma metrics visualization</p>
-                <p className="text-xs text-muted-foreground mt-1">Last updated {updatedAt.toLocaleTimeString()}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                    Last updated {updatedAt.toLocaleTimeString()}
+                </p>
             </div>
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:justify-end">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground w-full sm:w-auto">
                     <span className="sr-only" id="date-range-label">
                         Date range
                     </span>
-                    <DateRangePicker value={range} onChange={onRangeChange} className="w-full sm:w-[320px]" />
+                    <DateRangePicker
+                        value={range}
+                        onChange={onRangeChange}
+                        className="w-full sm:w-[320px]"
+                    />
                 </div>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="icon" aria-label="Bucket selector" className="shrink-0">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            aria-label="Bucket selector"
+                            className="shrink-0"
+                        >
                             <CalendarClock className="h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
@@ -63,7 +74,11 @@ export function HeaderToolbar({
                             >
                                 <div className="flex w-full items-center justify-between">
                                     <span>{label}</span>
-                                    {bucket === value && <span className="text-xs text-muted-foreground">(selected)</span>}
+                                    {bucket === value && (
+                                        <span className="text-xs text-muted-foreground">
+                                            (selected)
+                                        </span>
+                                    )}
                                 </div>
                             </DropdownMenuItem>
                         ))}
@@ -91,7 +106,10 @@ export function HeaderToolbar({
                             ['Downtime Windows', 'downtimeWindows'],
                         ].map(([label, key]) => (
                             <DropdownMenuItem key={key} asChild>
-                                <a href={`/reports/export?dataset=${key}&bucket=${bucket}&start=${start}&end=${end}`} target="_self">
+                                <a
+                                    href={`/reports/export?dataset=${key}&bucket=${bucket}&start=${start}&end=${end}`}
+                                    target="_self"
+                                >
                                     {label}
                                 </a>
                             </DropdownMenuItem>

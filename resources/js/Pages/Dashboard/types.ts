@@ -32,7 +32,6 @@ export type DashboardSeries = {
 export type DashboardFilters = {
     range: string;
     since?: string;
-    auto?: number;
 };
 
 export type DashboardData = {

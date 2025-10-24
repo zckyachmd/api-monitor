@@ -11,10 +11,11 @@ export function StatusDot({ status }: { status: number }) {
     return (
         <span className="relative inline-flex h-2.5 w-2.5">
             {ping && (
-                <span className={`absolute inline-flex h-full w-full rounded-full ${color} opacity-60 animate-ping`} />
+                <span
+                    className={`absolute inline-flex h-full w-full rounded-full ${color} opacity-60 animate-ping`}
+                />
             )}
             <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${color}`} />
         </span>
     );
 }
-

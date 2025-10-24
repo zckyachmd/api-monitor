@@ -12,7 +12,6 @@ class DashboardController
     public function __invoke(Request $request, MonitoringServiceInterface $service)
     {
         $range = (string) $request->query('range', '24h');
-        $auto = (int) $request->query('auto', 30_000);
 
         $data = $service->getData($range);
 
@@ -20,7 +19,6 @@ class DashboardController
             'filters' => [
                 'range' => $range,
                 'since' => $data['since']->toISOString(),
-                'auto' => $auto,
             ],
             'summary' => $data['summary'],
             'monitors' => $data['monitors'],

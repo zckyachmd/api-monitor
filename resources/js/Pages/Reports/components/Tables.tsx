@@ -139,7 +139,6 @@ export function ResponseTables({
             mq.addEventListener('change', handler as (e: MediaQueryListEvent) => void);
         } catch {
             // Safari
-            // @ts-ignore
             mq.addListener(handler);
         }
         return () => {
@@ -147,7 +146,6 @@ export function ResponseTables({
                 mq.removeEventListener('change', handler as (e: MediaQueryListEvent) => void);
             } catch {
                 // Safari
-                // @ts-ignore
                 mq.removeListener(handler);
             }
         };
@@ -163,7 +161,6 @@ export function ResponseTables({
             mq.addEventListener('change', handler as (e: MediaQueryListEvent) => void);
         } catch {
             // Safari
-            // @ts-ignore
             mq.addListener(handler);
         }
         return () => {
@@ -171,7 +168,6 @@ export function ResponseTables({
                 mq.removeEventListener('change', handler as (e: MediaQueryListEvent) => void);
             } catch {
                 // Safari
-                // @ts-ignore
                 mq.removeListener(handler);
             }
         };
@@ -189,7 +185,7 @@ export function ResponseTables({
     const [limit, setLimit] = React.useState<number | 'all'>('all');
     React.useEffect(() => {
         if (isSmall && limit === 'all') setLimit(8);
-    }, [isSmall]);
+    }, [isSmall, limit]);
     const colsRespStats: ColumnDef<LeaderItem>[] = React.useMemo(
         () => [
             {
@@ -200,14 +196,24 @@ export function ResponseTables({
             {
                 header: () => <div className="text-right">Avg</div>,
                 accessorKey: 'avg_ms',
-                cell: ({ row }) => <div className="text-right whitespace-nowrap">{row.original.avg_ms} ms</div>,
-                meta: { thClassName: 'w-26 text-right', tdClassName: 'w-26 text-right whitespace-nowrap' },
+                cell: ({ row }) => (
+                    <div className="text-right whitespace-nowrap">{row.original.avg_ms} ms</div>
+                ),
+                meta: {
+                    thClassName: 'w-26 text-right',
+                    tdClassName: 'w-26 text-right whitespace-nowrap',
+                },
             },
             {
                 header: () => <div className="text-right">Max</div>,
                 accessorKey: 'max_ms',
-                cell: ({ row }) => <div className="text-right whitespace-nowrap">{row.original.max_ms} ms</div>,
-                meta: { thClassName: 'w-20 text-right', tdClassName: 'w-20 text-right whitespace-nowrap' },
+                cell: ({ row }) => (
+                    <div className="text-right whitespace-nowrap">{row.original.max_ms} ms</div>
+                ),
+                meta: {
+                    thClassName: 'w-20 text-right',
+                    tdClassName: 'w-20 text-right whitespace-nowrap',
+                },
             },
         ],
         [],
@@ -250,24 +256,32 @@ export function ResponseTables({
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-28">
-                                {[['All', 'all'], ['Top 5', 5], ['Top 8', 8], ['Top 10', 10], ['Top 15', 15]].map(
-                                    ([label, val]) => (
-                                        <DropdownMenuItem
-                                            key={String(val)}
-                                            onSelect={(e) => {
-                                                e.preventDefault();
-                                                setLimit(val as number | 'all');
-                                            }}
-                                        >
-                                            <div className="flex w-full items-center justify-between">
-                                                <span>{label as string}</span>
-                                                {limit === (val as any) && (
-                                                    <span className="text-xs text-muted-foreground">(selected)</span>
-                                                )}
-                                            </div>
-                                        </DropdownMenuItem>
-                                    ),
-                                )}
+                                {(
+                                    [
+                                        { label: 'All', val: 'all' as const },
+                                        { label: 'Top 5', val: 5 as const },
+                                        { label: 'Top 8', val: 8 as const },
+                                        { label: 'Top 10', val: 10 as const },
+                                        { label: 'Top 15', val: 15 as const },
+                                    ] as const
+                                ).map(({ label, val }) => (
+                                    <DropdownMenuItem
+                                        key={String(val)}
+                                        onSelect={(e) => {
+                                            e.preventDefault();
+                                            setLimit(val);
+                                        }}
+                                    >
+                                        <div className="flex w-full items-center justify-between">
+                                            <span>{label}</span>
+                                            {limit === val && (
+                                                <span className="text-xs text-muted-foreground">
+                                                    (selected)
+                                                </span>
+                                            )}
+                                        </div>
+                                    </DropdownMenuItem>
+                                ))}
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
@@ -286,56 +300,56 @@ export function ResponseTables({
                     return (
                         <CardContent style={{ height: chartHeight }}>
                             <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                            data={data}
-                            layout="vertical"
-                            margin={{ left: leftMargin, right: 8, top: 8, bottom: 8 }}
-                        >
-                            <XAxis
-                                type="number"
-                                domain={[0, 'dataMax']}
-                                tick={{ fill: 'var(--muted-foreground)' }}
-                                axisLine={{ stroke: 'var(--border)' }}
-                                tickLine={{ stroke: 'var(--border)' }}
-                            />
-                            <YAxis
-                                type="category"
-                                dataKey="name"
-                                width={yAxisWidth}
-                                tick={{
-                                    fill: 'var(--muted-foreground)',
-                                    fontSize: isSmall ? 11 : 12,
-                                }}
-                                tickFormatter={(v) => ellipsize(String(v))}
-                                axisLine={{ stroke: 'var(--border)' }}
-                                tickLine={{ stroke: 'var(--border)' }}
-                            />
-                            <Tooltip
-                                content={
-                                    <ChartTooltip
-                                        valueKey="ms"
-                                        valueLabel="Response"
-                                        valueUnit="ms"
-                                        labelFormatter={(v) => String(v)}
+                                <BarChart
+                                    data={data}
+                                    layout="vertical"
+                                    margin={{ left: leftMargin, right: 8, top: 8, bottom: 8 }}
+                                >
+                                    <XAxis
+                                        type="number"
+                                        domain={[0, 'dataMax']}
+                                        tick={{ fill: 'var(--muted-foreground)' }}
+                                        axisLine={{ stroke: 'var(--border)' }}
+                                        tickLine={{ stroke: 'var(--border)' }}
                                     />
-                                }
-                            />
-                            <Bar
-                                dataKey="ms"
-                                fill={'var(--primary)'}
-                                barSize={barSize}
-                                radius={[0, 4, 4, 0]}
-                            >
-                                {!isSmall && (
-                                    <LabelList
+                                    <YAxis
+                                        type="category"
+                                        dataKey="name"
+                                        width={yAxisWidth}
+                                        tick={{
+                                            fill: 'var(--muted-foreground)',
+                                            fontSize: isSmall ? 11 : 12,
+                                        }}
+                                        tickFormatter={(v) => ellipsize(String(v))}
+                                        axisLine={{ stroke: 'var(--border)' }}
+                                        tickLine={{ stroke: 'var(--border)' }}
+                                    />
+                                    <Tooltip
+                                        content={
+                                            <ChartTooltip
+                                                valueKey="ms"
+                                                valueLabel="Response"
+                                                valueUnit="ms"
+                                                labelFormatter={(v) => String(v)}
+                                            />
+                                        }
+                                    />
+                                    <Bar
                                         dataKey="ms"
-                                        position="right"
-                                        formatter={(v: number | string) => `${v} ms`}
-                                        className="text-xs"
-                                    />
-                                )}
-                            </Bar>
-                        </BarChart>
+                                        fill={'var(--primary)'}
+                                        barSize={barSize}
+                                        radius={[0, 4, 4, 0]}
+                                    >
+                                        {!isSmall && (
+                                            <LabelList
+                                                dataKey="ms"
+                                                position="right"
+                                                formatter={(v: number | string) => `${v} ms`}
+                                                className="text-xs"
+                                            />
+                                        )}
+                                    </Bar>
+                                </BarChart>
                             </ResponsiveContainer>
                         </CardContent>
                     );

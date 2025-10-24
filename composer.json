@@ -14,6 +14,7 @@
         "laravel/fortify": "^1.31",
         "laravel/framework": "^12.0",
         "laravel/horizon": "^5.36",
+        "laravel/reverb": "*",
         "laravel/tinker": "^2.10.1",
         "maatwebsite/excel": "^3.1"
     },
@@ -50,11 +51,11 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#22c55e,#eab308,#c4b5fd\" \"php artisan serve --host=127.0.0.1 --port=${APP_PORT:-8000}\" \"php artisan schedule:work\" \"php artisan queue:work --queue=kuma,default --sleep=1 --tries=1\" \"npm run dev\" --names=server,scheduler,worker,vite --kill-others"
+            "npx concurrently -c \"#93c5fd,#22c55e,#eab308,#c4b5fd,#f97316\" \"php artisan serve --host=127.0.0.1 --port=${APP_PORT:-8000}\" \"php artisan schedule:work\" \"php artisan queue:work --queue=kuma,default --sleep=1 --tries=1\" \"npm run dev\" \"php artisan reverb:start\" --names=server,scheduler,worker,vite,reverb --kill-others"
         ],
         "dev:horizon": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#22c55e,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve --host=127.0.0.1 --port=${APP_PORT:-8000}\" \"php artisan schedule:work\" \"npm run dev\" \"php artisan horizon\" \"php artisan pail --timeout=0\" --names=server,scheduler,vite,horizon,logs --kill-others"
+            "npx concurrently -c \"#93c5fd,#22c55e,#c4b5fd,#fb7185,#fdba74,#f97316\" \"php artisan serve --host=127.0.0.1 --port=${APP_PORT:-8000}\" \"php artisan schedule:work\" \"npm run dev\" \"php artisan horizon\" \"php artisan pail --timeout=0\" \"php artisan reverb:start\" --names=server,scheduler,vite,horizon,logs,reverb --kill-others"
         ],
         "test": [
             "@php artisan config:clear --ansi",

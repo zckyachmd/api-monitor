@@ -8,4 +8,3 @@ export function statusColorVar(status: number): string {
     if (status === 0) return 'var(--destructive)';
     return 'var(--muted-foreground)';
 }
-
