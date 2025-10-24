@@ -20,6 +20,7 @@ composer install
 cp .env.example .env
 php artisan key:generate
 php artisan migrate
+npm install
 ```
 
 2) Minimal .env
@@ -31,17 +32,52 @@ UPTIME_KUMA_API_KEY=your_kuma_token
 # Choose a queue driver
 # QUEUE_CONNECTION=redis   # for Redis + Horizon
 QUEUE_CONNECTION=database  # without Redis/Horizon
+
+# Enable WebSocket broadcasting with Laravel Reverb (for Dashboard realtime)
+BROADCAST_DRIVER=reverb
+
+# Reverb server (local dev defaults)
+REVERB_APP_ID=local
+REVERB_APP_KEY=local-app-key
+REVERB_APP_SECRET=local-app-secret
+REVERB_HOST=127.0.0.1
+REVERB_PORT=8080
+REVERB_SCHEME=http
+REVERB_PATH=
+
+# Vite client (Dashboard subscribes to these)
+VITE_REVERB_ENABLED=true
+VITE_REVERB_APP_KEY="${REVERB_APP_KEY}"
+VITE_REVERB_HOST="${REVERB_HOST}"
+VITE_REVERB_PORT="${REVERB_PORT}"
+VITE_REVERB_SCHEME="${REVERB_SCHEME}"
+VITE_REVERB_PATH="${REVERB_PATH}"
 ```
 
 3) Run
 
-- With Redis + Horizon:
-  - `php artisan serve` and `php artisan horizon` (UI at `/horizon`)
+- One command (includes server, scheduler, queue worker, Vite, and Reverb WS):
+  - `composer dev`
+
+- With Redis + Horizon (alternative manual):
+  - `php artisan serve` + `php artisan schedule:work` + `php artisan horizon` + `php artisan reverb:start` + `npm run dev`
 
 - Without Redis (no Horizon):
-  - `php artisan serve` and `php artisan queue:work --queue=kuma`
+  - `php artisan serve` + `php artisan schedule:work` + `php artisan queue:work --queue=kuma,default` + `php artisan reverb:start` + `npm run dev`
 
 - Trigger a fetch: `php artisan kuma:fetch` (scheduler also runs it every minute)
+
+4) WebSocket behavior (Reverb)
+
+- Only the Dashboard page uses WebSockets for realtime updates. Reports pages do not open WS connections.
+- After each scheduled fetch, the backend emits a tiny "tick" event per range (24h, 7d, 30d) on channels:
+  - `dashboard.metrics.24h`, `dashboard.metrics.7d`, `dashboard.metrics.30d`
+- The Dashboard listens to `.dashboard.data` and then fetches the latest JSON payload via `/dashboard/data?range=...`.
+- This avoids large WS payloads and keeps resource usage low.
+
+Common ports/URLs (dev):
+- App: http://127.0.0.1:8000
+- Reverb WS: ws://127.0.0.1:8080
 
 ## Scheduling (Production)
 
