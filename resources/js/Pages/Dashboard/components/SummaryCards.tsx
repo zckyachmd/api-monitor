@@ -21,7 +21,7 @@ export function SummaryCards({
                             <CardTitle>Total Monitors</CardTitle>
                         </div>
                     </div>
-                    <CardDescription>Tracked by latest status</CardDescription>
+                    <CardDescription>Unique monitors observed in selected range</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="text-3xl font-bold">{summary.total}</div>
@@ -49,7 +49,7 @@ export function SummaryCards({
                             </TooltipContent>
                         </Tooltip>
                     </div>
-                    <CardDescription>Currently operational</CardDescription>
+                    <CardDescription>Total UP samples in selected range</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="text-3xl font-bold">{summary.up}</div>
@@ -86,7 +86,7 @@ export function SummaryCards({
                             </TooltipContent>
                         </Tooltip>
                     </div>
-                    <CardDescription>Checks in progress</CardDescription>
+                    <CardDescription>Total pending samples in selected range</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="text-3xl font-bold">{summary.pending}</div>
@@ -120,7 +120,7 @@ export function SummaryCards({
                             </TooltipContent>
                         </Tooltip>
                     </div>
-                    <CardDescription>Currently failing</CardDescription>
+                    <CardDescription>Total DOWN samples in selected range</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="text-3xl font-bold">{summary.down}</div>

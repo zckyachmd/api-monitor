@@ -19,8 +19,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import ChartTooltip from '@/components/ui/chart-tooltip';
 import { formatTimeLabel } from '@/pages/Reports/utils';
+import { formatMonitorUrl } from '@/lib/monitor';
 
 function MonitorCell(r: LeaderItem) {
+    const url = formatMonitorUrl(r.monitor_url);
     return (
         <div className="min-w-0 max-w-[220px] sm:max-w-[280px]">
             <div className="truncate font-medium" title={r.monitor_name}>
@@ -28,9 +30,9 @@ function MonitorCell(r: LeaderItem) {
             </div>
             <div
                 className="truncate text-xs text-muted-foreground hidden sm:block"
-                title={r.monitor_url}
+                title={url}
             >
-                {r.monitor_url}
+                {url}
             </div>
         </div>
     );
@@ -499,19 +501,22 @@ export function AvailabilityAndDowntime({
             {
                 header: 'Monitor',
                 accessorKey: 'monitor_name',
-                cell: ({ row }) => (
-                    <div className="min-w-0 max-w-[220px] sm:max-w-[280px]">
-                        <div className="truncate font-medium" title={row.original.monitor_name}>
-                            {row.original.monitor_name}
+                cell: ({ row }) => {
+                    const url = formatMonitorUrl(row.original.monitor_url);
+                    return (
+                        <div className="min-w-0 max-w-[220px] sm:max-w-[280px]">
+                            <div className="truncate font-medium" title={row.original.monitor_name}>
+                                {row.original.monitor_name}
+                            </div>
+                            <div
+                                className="truncate text-xs text-muted-foreground hidden sm:block"
+                                title={url}
+                            >
+                                {url}
+                            </div>
                         </div>
-                        <div
-                            className="truncate text-xs text-muted-foreground hidden sm:block"
-                            title={row.original.monitor_url}
-                        >
-                            {row.original.monitor_url}
-                        </div>
-                    </div>
-                ),
+                    );
+                },
             },
             {
                 header: 'Start',

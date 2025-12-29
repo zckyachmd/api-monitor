@@ -8,6 +8,7 @@ interface MonitorMetricsRepositoryInterface
 {
     public function latestPerMonitor(): Collection;
     public function currentSummary(): array;
+    public function statusTotals(?\DateTimeInterface $since = null, ?\DateTimeInterface $until = null): array;
     public function uptimeLeaderboard(?\DateTimeInterface $since = null, ?\DateTimeInterface $until = null, int $limit = 10, string $direction = 'desc'): Collection;
     public function mostDown(?\DateTimeInterface $since = null, ?\DateTimeInterface $until = null, int $limit = 10): Collection;
     public function neverDown(?\DateTimeInterface $since = null, ?\DateTimeInterface $until = null): Collection;

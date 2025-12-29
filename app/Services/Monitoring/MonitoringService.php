@@ -73,12 +73,13 @@ class MonitoringService implements MonitoringServiceInterface
             }
         }
 
+        $totals = $this->repo->statusTotals($since);
         $summary = [
-            'total' => count($items),
-            'up' => collect($items)->where('status', MonitorStatus::UP->value)->count(),
-            'down' => collect($items)->where('status', MonitorStatus::DOWN->value)->count(),
-            'pending' => collect($items)->where('status', MonitorStatus::PENDING->value)->count(),
-            'maintenance' => collect($items)->where('status', MonitorStatus::MAINTENANCE->value)->count(),
+            'total' => $totals['monitors'] ?? count($items),
+            'up' => $totals['up'] ?? 0,
+            'down' => $totals['down'] ?? 0,
+            'pending' => $totals['pending'] ?? 0,
+            'maintenance' => $totals['maintenance'] ?? 0,
         ];
 
         // Response time sparkline per monitor (avg per minute)

@@ -3,7 +3,7 @@
 ARG PHP_VERSION=8.2
 ARG NODE_VERSION=20
 
-FROM php:${PHP_VERSION}-cli AS php-base
+FROM php:${PHP_VERSION}-fpm AS php-base
 
 ENV TZ=UTC
 
@@ -75,7 +75,13 @@ COPY --from=composer-deps /var/www/html/vendor ./vendor
 COPY --from=asset-builder /app/public/build ./public/build
 
 RUN chown -R www-data:www-data storage bootstrap/cache
+RUN ln -sfn ../storage/app/public public/storage
 
-EXPOSE 8000 8080 5173
+EXPOSE 8000 8080 5173 9000
 
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+CMD ["php-fpm", "-F"]
+
+FROM nginx:alpine AS nginx
+
+COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY --from=runtime /var/www/html/public /var/www/html/public

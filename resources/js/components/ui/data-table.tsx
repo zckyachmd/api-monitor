@@ -20,6 +20,8 @@ import {
     TableRow,
 } from '@/components/ui/table';
 
+const STORAGE_VERSION = 2;
+
 export interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[];
     data: TData[];
@@ -36,7 +38,7 @@ export function DataTable<TData, TValue>({
     storageKey,
     bordered = false,
     pageSizeOptions = [5, 10, 20, 50, 100],
-    defaultPageSize = 10,
+    defaultPageSize = 5,
     noScrollX = false,
 }: DataTableProps<TData, TValue>) {
     const [sorting, setSorting] = React.useState<SortingState>(() => {
@@ -49,12 +51,22 @@ export function DataTable<TData, TValue>({
         }
     });
     const uid = React.useId();
+    const pageSizeStorageKey = storageKey ? `${storageKey}:pageSize` : null;
     const [pageSize, setPageSize] = React.useState<number>(() => {
-        if (!storageKey) return defaultPageSize;
+        if (!pageSizeStorageKey) return defaultPageSize;
         try {
-            const raw = localStorage.getItem(`${storageKey}:pageSize`);
-            const val = raw ? parseInt(raw, 10) : defaultPageSize;
-            return Number.isFinite(val) && val > 0 ? val : defaultPageSize;
+            const raw = localStorage.getItem(pageSizeStorageKey);
+            if (!raw) return defaultPageSize;
+            const parsed = JSON.parse(raw);
+            if (
+                parsed &&
+                typeof parsed === 'object' &&
+                parsed.version === STORAGE_VERSION
+            ) {
+                const val = Number(parsed.value);
+                if (Number.isFinite(val) && val > 0) return val;
+            }
+            return defaultPageSize;
         } catch {
             return defaultPageSize;
         }
@@ -63,7 +75,7 @@ export function DataTable<TData, TValue>({
     const table = useReactTable({
         data,
         columns,
-        state: { sorting, pagination: { pageIndex: 0, pageSize } },
+        state: { sorting },
         onSortingChange: setSorting,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
@@ -81,13 +93,16 @@ export function DataTable<TData, TValue>({
 
     React.useEffect(() => {
         table.setPageSize(pageSize);
-        if (!storageKey) return;
+        if (!pageSizeStorageKey) return;
         try {
-            localStorage.setItem(`${storageKey}:pageSize`, String(pageSize));
+            localStorage.setItem(
+                pageSizeStorageKey,
+                JSON.stringify({ version: STORAGE_VERSION, value: pageSize }),
+            );
         } catch {
             // ignore
         }
-    }, [pageSize, storageKey, table]);
+    }, [pageSize, pageSizeStorageKey, table]);
 
     const selectId = storageKey
         ? `rows-per-page-${String(storageKey).replace(/[^a-zA-Z0-9_-]/g, '-')}`

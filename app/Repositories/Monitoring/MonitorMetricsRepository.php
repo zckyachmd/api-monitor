@@ -39,6 +39,33 @@ class MonitorMetricsRepository implements MonitorMetricsRepositoryInterface
         return compact('total', 'up', 'down', 'pending', 'maintenance');
     }
 
+    public function statusTotals(?\DateTimeInterface $since = null, ?\DateTimeInterface $until = null): array
+    {
+        $q = DB::table('uptime_kuma_metrics');
+
+        if ($since) {
+            $q->where('fetched_at', '>=', $since);
+        }
+        if ($until) {
+            $q->where('fetched_at', '<=', $until);
+        }
+
+        $row = $q->selectRaw('COUNT(DISTINCT monitor_url) as monitor_total')
+            ->selectRaw('SUM(CASE WHEN status = '.MonitorStatus::UP->value.' THEN 1 ELSE 0 END) as up_count')
+            ->selectRaw('SUM(CASE WHEN status = '.MonitorStatus::DOWN->value.' THEN 1 ELSE 0 END) as down_count')
+            ->selectRaw('SUM(CASE WHEN status = '.MonitorStatus::PENDING->value.' THEN 1 ELSE 0 END) as pending_count')
+            ->selectRaw('SUM(CASE WHEN status = '.MonitorStatus::MAINTENANCE->value.' THEN 1 ELSE 0 END) as maintenance_count')
+            ->first();
+
+        return [
+            'monitors' => (int) ($row->monitor_total ?? 0),
+            'up' => (int) ($row->up_count ?? 0),
+            'down' => (int) ($row->down_count ?? 0),
+            'pending' => (int) ($row->pending_count ?? 0),
+            'maintenance' => (int) ($row->maintenance_count ?? 0),
+        ];
+    }
+
     public function uptimeLeaderboard(?\DateTimeInterface $since = null, ?\DateTimeInterface $until = null, int $limit = 10, string $direction = 'desc'): Collection
     {
         $q = DB::table('uptime_kuma_metrics')

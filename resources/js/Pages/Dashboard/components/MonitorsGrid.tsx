@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/dialog';
 import {
     GripVertical,
-    Maximize2,
     Info,
     Clock,
     TrendingUp,
@@ -24,10 +23,10 @@ import {
     ChevronsUp,
     Gauge,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { StatusDot } from '@/pages/Dashboard/components/StatusDot';
 import { pct, statusColorVar } from '@/pages/Dashboard/utils';
 import type { MonitorItem } from '@/pages/Dashboard/types';
+import { formatMonitorUrl } from '@/lib/monitor';
 
 type Props = {
     monitors: MonitorItem[];
@@ -89,79 +88,166 @@ export function MonitorsGrid({ monitors }: Props) {
         setDragOver(null);
     }
 
-    function copyUrl(u: string) {
-        try {
-            navigator.clipboard.writeText(u);
-            toast.success('Endpoint copied');
-        } catch {
-            // ignore
-        }
-    }
-
     return (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {displayed.map((m) => (
-                <Card
-                    key={m.monitor_url}
-                    className={`relative overflow-hidden ${dragOver === m.monitor_url ? 'ring-2 ring-primary/50 ring-offset-2 ring-offset-background' : ''}`}
-                    draggable
-                    onDragStart={() => onDragStart(m.monitor_url)}
-                    onDragOver={(e) => {
-                        onDragOver(e);
-                        setDragOver(m.monitor_url);
-                    }}
-                    onDragEnter={() => setDragOver(m.monitor_url)}
-                    onDragLeave={() => setDragOver(null)}
-                    onDrop={() => onDrop(m.monitor_url)}
-                >
-                    <CardHeader>
-                        <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2 min-w-0">
-                                    <span className="text-muted-foreground cursor-grab">
-                                        <GripVertical className="h-4 w-4 transition-transform duration-150 hover:scale-110" />
-                                    </span>
-                                    <StatusDot status={m.status} />
-                                    <CardTitle className="truncate flex-1" title={m.monitor_name}>
-                                        {m.monitor_name}
-                                    </CardTitle>
-                                </div>
-                                <CardDescription
-                                    className="truncate cursor-copy hover:underline"
-                                    title={m.monitor_url}
-                                    onClick={() => copyUrl(m.monitor_url)}
-                                >
-                                    {m.monitor_url}
-                                </CardDescription>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <button
-                                            type="button"
-                                            title="Open fullscreen"
-                                            className="inline-flex h-6 w-6 items-center justify-center text-muted-foreground hover:text-foreground transition-transform duration-150 hover:scale-110"
-                                        >
-                                            <Maximize2 className="h-4 w-4" />
-                                        </button>
-                                    </DialogTrigger>
-                                    <DialogContent className="max-w-2xl">
-                                        <DialogHeader>
-                                            <div className="flex items-center gap-2">
+            {displayed.map((m) => {
+                const displayUrl = formatMonitorUrl(m.monitor_url);
+                const isLinkable = displayUrl !== '-';
+                return (
+                    <Dialog key={m.monitor_url}>
+                        <DialogTrigger asChild>
+                            <Card
+                                className={`relative overflow-hidden ${dragOver === m.monitor_url ? 'ring-2 ring-primary/50 ring-offset-2 ring-offset-background' : ''}`}
+                                draggable
+                                onDragStart={() => onDragStart(m.monitor_url)}
+                                onDragEnd={() => setDragging(null)}
+                                onDragOver={(e) => {
+                                    onDragOver(e);
+                                    setDragOver(m.monitor_url);
+                                }}
+                                onDragEnter={() => setDragOver(m.monitor_url)}
+                                onDragLeave={() => setDragOver(null)}
+                                onDrop={() => onDrop(m.monitor_url)}
+                            >
+                                <CardHeader>
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <span
+                                                    className="text-muted-foreground cursor-grab"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    onMouseDown={(e) => e.stopPropagation()}
+                                                >
+                                                    <GripVertical className="h-4 w-4 transition-transform duration-150 hover:scale-110" />
+                                                </span>
                                                 <StatusDot status={m.status} />
-                                                <DialogTitleCmp className="leading-none">
+                                                <CardTitle
+                                                    className="truncate flex-1"
+                                                    title={m.monitor_name}
+                                                >
                                                     {m.monitor_name}
-                                                </DialogTitleCmp>
+                                                </CardTitle>
                                             </div>
-                                            <DialogDescription
-                                                className="break-all cursor-copy hover:underline"
-                                                title={m.monitor_url}
-                                                onClick={() => copyUrl(m.monitor_url)}
+                                            <CardDescription className="truncate">
+                                                {isLinkable ? (
+                                                    <a
+                                                        href={displayUrl}
+                                                        target="_blank"
+                                                        rel="noreferrer noopener"
+                                                        className="hover:underline"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        {displayUrl}
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-muted-foreground">
+                                                        {displayUrl}
+                                                    </span>
+                                                )}
+                                            </CardDescription>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                                        {(() => {
+                                            const s = m.resp_series || [];
+                                            const n = s.length;
+                                            if (n >= 2) {
+                                                const delta = Math.round(
+                                                    (s[n - 1]?.value ?? 0) - (s[n - 2]?.value ?? 0),
+                                                );
+                                                const improved = delta < 0;
+                                                const same = delta === 0;
+                                                return (
+                                                    <span
+                                                        className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0 text-[10px] ${same ? 'text-muted-foreground' : improved ? 'text-green-600 dark:text-green-400 border-green-400/30 bg-green-500/5' : 'text-red-600 dark:text-red-400 border-red-400/30 bg-red-500/5'}`}
+                                                    >
+                                                        {same ? null : improved ? (
+                                                            <TrendingDown className="h-3 w-3" />
+                                                        ) : (
+                                                            <TrendingUp className="h-3 w-3" />
+                                                        )}
+                                                        {Math.abs(delta)} ms
+                                                    </span>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
+                                        {m.cert_is_valid === false && (
+                                            <Badge
+                                                variant="destructive"
+                                                className="text-[10px] px-1.5 py-0"
                                             >
-                                                {m.monitor_url}
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
+                                                Cert invalid
+                                            </Badge>
+                                        )}
+                                        {(m.cert_is_valid == null || m.cert_is_valid === true) &&
+                                            typeof m.cert_days_remaining === 'number' &&
+                                            m.cert_days_remaining <= 14 && (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="text-[10px] px-1.5 py-0"
+                                                >
+                                                    Cert {m.cert_days_remaining}d
+                                                </Badge>
+                                            )}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                        <div>
+                                            <div className="text-muted-foreground">Status</div>
+                                            <div className="font-medium">{m.status_label}</div>
+                                        </div>
+                                        <div>
+                                            <div className="text-muted-foreground">Response</div>
+                                            <div className="font-medium">
+                                                {m.status === 0
+                                                    ? '—'
+                                                    : typeof m.response_time_ms === 'number'
+                                                      ? `${m.response_time_ms} ms`
+                                                      : '—'}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="text-muted-foreground">Uptime</div>
+                                            <div className="font-medium">
+                                                {pct(m.uptime_percent)}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="text-muted-foreground">Downtime</div>
+                                            <div className="font-medium">
+                                                {m.status === 0 ? `${m.down_minutes ?? 0} min` : '—'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl">
+                            <DialogHeader>
+                                <div className="flex items-center gap-2">
+                                    <StatusDot status={m.status} />
+                                    <DialogTitleCmp className="leading-none">
+                                        {m.monitor_name}
+                                    </DialogTitleCmp>
+                                </div>
+                                <DialogDescription className="break-all">
+                                    {isLinkable ? (
+                                        <a
+                                            href={displayUrl}
+                                            target="_blank"
+                                            rel="noreferrer noopener"
+                                            className="hover:underline"
+                                        >
+                                            {displayUrl}
+                                        </a>
+                                    ) : (
+                                        <span className="text-muted-foreground">{displayUrl}</span>
+                                    )}
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
                                             <div>
                                                 <div className="text-muted-foreground">
                                                     Hostname
@@ -305,80 +391,11 @@ export function MonitorsGrid({ monitors }: Props) {
                                                     </div>
                                                 );
                                             })()}
-                                        </div>
-                                    </DialogContent>
-                                </Dialog>
                             </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="mb-3 flex flex-wrap items-center gap-2">
-                            {(() => {
-                                const s = m.resp_series || [];
-                                const n = s.length;
-                                if (n >= 2) {
-                                    const delta = Math.round(
-                                        (s[n - 1]?.value ?? 0) - (s[n - 2]?.value ?? 0),
-                                    );
-                                    const improved = delta < 0;
-                                    const same = delta === 0;
-                                    return (
-                                        <span
-                                            className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0 text-[10px] ${same ? 'text-muted-foreground' : improved ? 'text-green-600 dark:text-green-400 border-green-400/30 bg-green-500/5' : 'text-red-600 dark:text-red-400 border-red-400/30 bg-red-500/5'}`}
-                                        >
-                                            {same ? null : improved ? (
-                                                <TrendingDown className="h-3 w-3" />
-                                            ) : (
-                                                <TrendingUp className="h-3 w-3" />
-                                            )}
-                                            {Math.abs(delta)} ms
-                                        </span>
-                                    );
-                                }
-                                return null;
-                            })()}
-                            {m.cert_is_valid === false && (
-                                <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
-                                    Cert invalid
-                                </Badge>
-                            )}
-                            {(m.cert_is_valid == null || m.cert_is_valid === true) &&
-                                typeof m.cert_days_remaining === 'number' &&
-                                m.cert_days_remaining <= 14 && (
-                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                                        Cert {m.cert_days_remaining}d
-                                    </Badge>
-                                )}
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                            <div>
-                                <div className="text-muted-foreground">Status</div>
-                                <div className="font-medium">{m.status_label}</div>
-                            </div>
-                            <div>
-                                <div className="text-muted-foreground">Response</div>
-                                <div className="font-medium">
-                                    {m.status === 0
-                                        ? '—'
-                                        : typeof m.response_time_ms === 'number'
-                                          ? `${m.response_time_ms} ms`
-                                          : '—'}
-                                </div>
-                            </div>
-                            <div>
-                                <div className="text-muted-foreground">Uptime</div>
-                                <div className="font-medium">{pct(m.uptime_percent)}</div>
-                            </div>
-                            <div>
-                                <div className="text-muted-foreground">Downtime</div>
-                                <div className="font-medium">
-                                    {m.status === 0 ? `${m.down_minutes ?? 0} min` : '—'}
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            ))}
+                        </DialogContent>
+                    </Dialog>
+                );
+            })}
         </div>
     );
 }

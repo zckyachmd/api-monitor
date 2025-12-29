@@ -94,13 +94,13 @@ For detailed configuration, service/command/job behavior, queue/Horizon setup, d
 
 ## Docker
 
-Spin up the full stack (app HTTP server, scheduler, queue, Reverb WS, Vite, MySQL, Redis) with Docker:
+Spin up the full development stack (artisan HTTP server, Vite hot reload, scheduler, queue, Reverb WS, MySQL, Redis 7-alpine) with Docker:
 
 ```bash
 APP_PORT=8000 docker compose up --build
 ```
 
-For a production-style image (code baked into the image, no bind mounts) use the override file:
+For a production-style deployment (PHP-FPM + nginx-alpine front-end, code baked into the image, no bind mounts) use the override file:
 
 ```bash
 APP_URL=https://monitor.example.com \

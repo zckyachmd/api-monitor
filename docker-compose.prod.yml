@@ -5,6 +5,7 @@ x-prod-php: &prod-php
     target: runtime
     args:
       APP_ENV: production
+  entrypoint: ["/var/www/html/docker/entrypoint.sh"]
 
 services:
   app:
@@ -26,7 +27,7 @@ services:
       VITE_REVERB_ENABLED: "false"
     volumes:
       - laravel_storage:/var/www/html/storage
-    command: php artisan serve --host=0.0.0.0 --port=${APP_PORT:-8000}
+    command: php-fpm -F
 
   scheduler:
     <<: *prod-php
@@ -67,6 +68,22 @@ services:
       RUN_MIGRATIONS: "false"
     volumes:
       - laravel_storage:/var/www/html/storage
+
+  nginx:
+    image: api-monitor-nginx:prod
+    build:
+      context: .
+      target: nginx
+    depends_on:
+      app:
+        condition: service_started
+    ports:
+      - "${APP_PORT:-8000}:80"
+    volumes:
+      - laravel_storage:/var/www/html/storage:ro
+    environment:
+      APP_ENV: production
+    restart: unless-stopped
 
   vite:
     profiles: ["dev"]
