@@ -1,0 +1,88 @@
+x-prod-php: &prod-php
+  image: api-monitor-app:prod
+  build:
+    context: .
+    target: runtime
+    args:
+      APP_ENV: production
+
+services:
+  app:
+    <<: *prod-php
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: ${APP_URL:-http://localhost}
+      DB_DATABASE: ${DB_DATABASE:-api_monitor}
+      DB_USERNAME: ${DB_USERNAME:-api_monitor}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      BROADCAST_DRIVER: reverb
+      REVERB_APP_ID: ${REVERB_APP_ID:-local}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:-local-app-key}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:-local-app-secret}
+      REVERB_HOST: 0.0.0.0
+      REVERB_PORT: 8080
+      REVERB_SCHEME: http
+      VITE_REVERB_ENABLED: "false"
+    volumes:
+      - laravel_storage:/var/www/html/storage
+    command: php artisan serve --host=0.0.0.0 --port=${APP_PORT:-8000}
+
+  scheduler:
+    <<: *prod-php
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_DATABASE: ${DB_DATABASE:-api_monitor}
+      DB_USERNAME: ${DB_USERNAME:-api_monitor}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      RUN_MIGRATIONS: "false"
+    volumes:
+      - laravel_storage:/var/www/html/storage
+
+  queue:
+    <<: *prod-php
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_DATABASE: ${DB_DATABASE:-api_monitor}
+      DB_USERNAME: ${DB_USERNAME:-api_monitor}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      RUN_MIGRATIONS: "false"
+    volumes:
+      - laravel_storage:/var/www/html/storage
+    command: php artisan queue:work --queue=kuma,default --sleep=3 --tries=3 --backoff=3
+
+  reverb:
+    <<: *prod-php
+    environment:
+      APP_ENV: production
+      BROADCAST_DRIVER: reverb
+      REVERB_APP_ID: ${REVERB_APP_ID:-local}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:-local-app-key}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:-local-app-secret}
+      REVERB_HOST: 0.0.0.0
+      REVERB_PORT: 8080
+      REVERB_SCHEME: http
+      RUN_MIGRATIONS: "false"
+    volumes:
+      - laravel_storage:/var/www/html/storage
+
+  vite:
+    profiles: ["dev"]
+
+  mysql:
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-api_monitor}
+      MYSQL_USER: ${DB_USERNAME:-api_monitor}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    ports: []
+
+  redis:
+    ports: []
+
+volumes:
+  laravel_storage:
+  mysql_data:
+  redis_data:

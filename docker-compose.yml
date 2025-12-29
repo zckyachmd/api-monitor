@@ -1,0 +1,162 @@
+x-laravel-build: &laravel-build
+  context: .
+  target: runtime
+  args:
+    APP_ENV: local
+
+x-laravel-env: &laravel-env
+  APP_ENV: local
+  APP_DEBUG: "true"
+  DB_CONNECTION: mysql
+  DB_HOST: mysql
+  DB_PORT: 3306
+  DB_DATABASE: api_monitor
+  DB_USERNAME: api_monitor
+  DB_PASSWORD: secret
+  QUEUE_CONNECTION: redis
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+
+x-laravel-volumes: &laravel-volumes
+  - .:/var/www/html
+  - laravel_vendor:/var/www/html/vendor
+  - laravel_storage:/var/www/html/storage
+
+x-laravel-depends: &laravel-depends
+  mysql:
+    condition: service_healthy
+  redis:
+    condition: service_started
+
+services:
+  app:
+    image: api-monitor-app:local
+    build: *laravel-build
+    container_name: api-monitor-app
+    entrypoint: ["/var/www/html/docker/entrypoint.sh"]
+    command: php artisan serve --host=0.0.0.0 --port=${APP_PORT:-8000}
+    environment:
+      <<: *laravel-env
+      APP_URL: http://localhost:${APP_PORT:-8000}
+      BROADCAST_DRIVER: reverb
+      REVERB_APP_ID: local
+      REVERB_APP_KEY: local-app-key
+      REVERB_APP_SECRET: local-app-secret
+      REVERB_HOST: 0.0.0.0
+      REVERB_PORT: 8080
+      REVERB_SCHEME: http
+      VITE_REVERB_ENABLED: "true"
+      VITE_REVERB_HOST: localhost
+      VITE_REVERB_PORT: 8080
+      VITE_REVERB_SCHEME: http
+    volumes: *laravel-volumes
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    depends_on: *laravel-depends
+
+  scheduler:
+    image: api-monitor-app:local
+    build: *laravel-build
+    container_name: api-monitor-scheduler
+    entrypoint: ["/var/www/html/docker/entrypoint.sh"]
+    command: php artisan schedule:work
+    environment:
+      <<: *laravel-env
+      RUN_MIGRATIONS: "false"
+    volumes: *laravel-volumes
+    depends_on:
+      <<: *laravel-depends
+      app:
+        condition: service_started
+
+  queue:
+    image: api-monitor-app:local
+    build: *laravel-build
+    container_name: api-monitor-queue
+    entrypoint: ["/var/www/html/docker/entrypoint.sh"]
+    command: php artisan queue:work --queue=kuma,default --sleep=1 --tries=1
+    environment:
+      <<: *laravel-env
+      RUN_MIGRATIONS: "false"
+    volumes: *laravel-volumes
+    depends_on:
+      <<: *laravel-depends
+      app:
+        condition: service_started
+
+  reverb:
+    image: api-monitor-app:local
+    build: *laravel-build
+    container_name: api-monitor-reverb
+    entrypoint: ["/var/www/html/docker/entrypoint.sh"]
+    command: php artisan reverb:start --host=0.0.0.0 --port=8080
+    environment:
+      <<: *laravel-env
+      BROADCAST_DRIVER: reverb
+      REVERB_APP_ID: local
+      REVERB_APP_KEY: local-app-key
+      REVERB_APP_SECRET: local-app-secret
+      REVERB_HOST: 0.0.0.0
+      REVERB_PORT: 8080
+      REVERB_SCHEME: http
+      RUN_MIGRATIONS: "false"
+    volumes: *laravel-volumes
+    ports:
+      - "8080:8080"
+    depends_on:
+      <<: *laravel-depends
+      app:
+        condition: service_started
+
+  vite:
+    image: node:20-bullseye
+    container_name: api-monitor-vite
+    working_dir: /var/www/html
+    command: sh -c "npm install && npm run dev -- --host=0.0.0.0 --port=5173"
+    environment:
+      HOST: 0.0.0.0
+      CHOKIDAR_USEPOLLING: "true"
+      VITE_REVERB_HOST: localhost
+      VITE_REVERB_PORT: 8080
+      VITE_REVERB_SCHEME: http
+    volumes:
+      - .:/var/www/html
+      - node_modules:/var/www/html/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      app:
+        condition: service_started
+
+  mysql:
+    image: mysql:8.4
+    container_name: api-monitor-mysql
+    environment:
+      MYSQL_DATABASE: api_monitor
+      MYSQL_USER: api_monitor
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: api-monitor-redis
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+
+volumes:
+  laravel_vendor:
+  laravel_storage:
+  node_modules:
+  mysql_data:
+  redis_data:

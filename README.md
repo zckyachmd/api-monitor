@@ -90,6 +90,24 @@ Common ports/URLs (dev):
 For detailed configuration, service/command/job behavior, queue/Horizon setup, data model and indexes, repository query catalog, and troubleshooting, see:
 
 - [Uptime Kuma Integration Guide](docs/uptime-kuma.md)
+- [Container guide](docs/docker.md)
+
+## Docker
+
+Spin up the full stack (app HTTP server, scheduler, queue, Reverb WS, Vite, MySQL, Redis) with Docker:
+
+```bash
+APP_PORT=8000 docker compose up --build
+```
+
+For a production-style image (code baked into the image, no bind mounts) use the override file:
+
+```bash
+APP_URL=https://monitor.example.com \
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+```
+
+More usage details live in [docs/docker.md](docs/docker.md).
 
 ## License
 
