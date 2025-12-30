@@ -71,6 +71,7 @@ ARG APP_ENV=production
 ENV APP_ENV=${APP_ENV}
 
 COPY . .
+RUN rm -f public/hot
 COPY --from=composer-deps /var/www/html/vendor ./vendor
 COPY --from=asset-builder /app/public/build ./public/build
 

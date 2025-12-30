@@ -68,32 +68,39 @@ This repository ships with a multi-container setup that runs the Laravel HTTP se
 
 ## Production override
 
-`docker-compose.prod.yml` acts as the override file for production deployments (different env vars, image tag `api-monitor-app:prod`, no source-code bind mount, nginx front-end). Run it alongside the base file:
+`docker-compose.prod.yml` defines the standalone production stack (different env vars, image tag `api-monitor-app:prod`, no source-code bind mount, nginx front-end). Run it on its own:
 
 ```bash
 APP_URL=https://monitor.example.com \
 DB_DATABASE=api_monitor \
 DB_USERNAME=api_monitor \
 DB_PASSWORD=supersecret \
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+docker compose -f docker-compose.prod.yml up --build -d
 ```
 
 Key behavior:
 
 - PHP services build with `APP_ENV=production`, run PHP-FPM, and tag `api-monitor-app:prod`.
 - An `nginx:alpine` front-end container (via the multi-stage target) serves `/public` and proxies PHP traffic to `app:9000`.
-- Only `storage/` is mounted (shared with nginx so `/storage` URLs work); code lives inside the image.
-- `redis:7-alpine` and MySQL run without host ports; only nginx exposes `${APP_PORT:-8000}`.
+- Only `storage/` is mounted (shared with nginx so `/storage` URLs work); code lives inside the image and the build stage removes any stray `public/hot` file so Vite never tries to talk to a dev server.
+- `mysql:8.4` and `redis:7-alpine` run without host ports; only nginx exposes `${APP_PORT:-8000}`.
+- Prod uses its own volumes (`laravel_storage_prod`, `mysql_data_prod`, `redis_data_prod`) so dev/test data does not leak across runs.
+- Cache/session drivers default to Redis in prod, so no DB tables are required for cache/session storage.
+- A fallback `APP_KEY` is baked into the compose file for convenience, but you should override it with your own generated key via `APP_KEY=base64:...` when running the stack.
+- Background workers match the dev setup: `scheduler` runs `php artisan schedule:work`, `queue` runs `php artisan queue:work ...`, and `reverb` starts the websocket server. All of them share the same storage volume so logs persist.
 - `VITE_REVERB_ENABLED=false` and the Vite dev server stays disabled.
 
 To run migrations or artisan tasks against the production stack:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml exec app php artisan migrate --force
+docker compose -f docker-compose.prod.yml exec app php artisan migrate --force
 ```
+
+> Changing DB credentials or starting the prod stack for the first time? Because the database lives inside `mysql_data_prod`, run `docker compose -f docker-compose.prod.yml down -v` once (or `docker volume rm api-monitor_mysql_data_prod`) to reset the volume so MySQL can initialize with the new password/key pair. Do the same if you change `APP_KEY`.
 
 ## Troubleshooting
 
 - Run `docker compose build --no-cache app` to force a clean image rebuild.
 - `docker compose ps` shows container health; use `docker compose logs <service>` for details.
 - Ensure `.env` matches the container DB credentials (`DB_HOST=mysql`, `DB_PASSWORD=secret` by default).
+- Generate an `APP_KEY` once (e.g. run `php artisan key:generate --show` or `php -r "echo 'base64:'.base64_encode(random_bytes(32)).PHP_EOL;"`) and pass it via the environment when launching the stack.

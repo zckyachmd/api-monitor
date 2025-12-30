@@ -11,15 +11,35 @@ setup_directories() {
 }
 
 install_dependencies() {
-    if [ -f "/var/www/html/vendor/autoload.php" ]; then
+    VENDOR_AUTOLOAD="/var/www/html/vendor/autoload.php"
+    HASH_FILE="/var/www/html/vendor/.composer.lock.hash"
+
+    if [ "$APP_ENV" = "production" ]; then
+        if [ -f "$VENDOR_AUTOLOAD" ]; then
+            return 0
+        fi
+
+        composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
         return 0
     fi
 
-    if [ "$APP_ENV" = "production" ]; then
-        composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
-    else
-        composer install --no-interaction --prefer-dist
+    if [ ! -f /var/www/html/composer.lock ]; then
+        echo "composer.lock not found; skipping dependency install."
+        return 0
     fi
+
+    CURRENT_HASH=$(sha256sum /var/www/html/composer.lock | awk '{print $1}')
+    INSTALLED_HASH=""
+    if [ -f "$HASH_FILE" ]; then
+        INSTALLED_HASH=$(cat "$HASH_FILE")
+    fi
+
+    if [ -f "$VENDOR_AUTOLOAD" ] && [ "$CURRENT_HASH" = "$INSTALLED_HASH" ]; then
+        return 0
+    fi
+
+    composer install --no-interaction --prefer-dist
+    echo "$CURRENT_HASH" > "$HASH_FILE"
 }
 
 run_migrations() {
@@ -33,7 +53,12 @@ run_migrations() {
     done
 }
 
+set_permissions() {
+    chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+}
+
 setup_directories
+set_permissions
 install_dependencies
 run_migrations
 

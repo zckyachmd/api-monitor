@@ -7,16 +7,33 @@ x-prod-php: &prod-php
       APP_ENV: production
   entrypoint: ["/var/www/html/docker/entrypoint.sh"]
 
+x-prod-env: &prod-env
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_KEY: ${APP_KEY:-base64:p6T2Kj5cdZ6SY+4FJVpaz6RtWLpmjHtkobaN6D+PfIY=}
+  DB_CONNECTION: mysql
+  DB_HOST: mysql
+  DB_PORT: 3306
+  DB_DATABASE: ${DB_DATABASE:-api_monitor}
+  DB_USERNAME: ${DB_USERNAME:-api_monitor}
+  DB_PASSWORD: ${DB_PASSWORD:-secret}
+  QUEUE_CONNECTION: redis
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  CACHE_STORE: redis
+  SESSION_DRIVER: redis
+
 services:
   app:
     <<: *prod-php
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
-      APP_ENV: production
-      APP_DEBUG: "false"
+      <<: *prod-env
       APP_URL: ${APP_URL:-http://localhost}
-      DB_DATABASE: ${DB_DATABASE:-api_monitor}
-      DB_USERNAME: ${DB_USERNAME:-api_monitor}
-      DB_PASSWORD: ${DB_PASSWORD:-secret}
       BROADCAST_DRIVER: reverb
       REVERB_APP_ID: ${REVERB_APP_ID:-local}
       REVERB_APP_KEY: ${REVERB_APP_KEY:-local-app-key}
@@ -26,38 +43,58 @@ services:
       REVERB_SCHEME: http
       VITE_REVERB_ENABLED: "false"
     volumes:
-      - laravel_storage:/var/www/html/storage
+      - type: volume
+        source: laravel_storage_prod
+        target: /var/www/html/storage
+        volume:
+          nocopy: true
     command: php-fpm -F
 
   scheduler:
     <<: *prod-php
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
-      APP_ENV: production
-      APP_DEBUG: "false"
-      DB_DATABASE: ${DB_DATABASE:-api_monitor}
-      DB_USERNAME: ${DB_USERNAME:-api_monitor}
-      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      <<: *prod-env
       RUN_MIGRATIONS: "false"
     volumes:
-      - laravel_storage:/var/www/html/storage
+      - type: volume
+        source: laravel_storage_prod
+        target: /var/www/html/storage
+        volume:
+          nocopy: true
+    command: php artisan schedule:work
 
   queue:
     <<: *prod-php
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
-      APP_ENV: production
-      APP_DEBUG: "false"
-      DB_DATABASE: ${DB_DATABASE:-api_monitor}
-      DB_USERNAME: ${DB_USERNAME:-api_monitor}
-      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      <<: *prod-env
       RUN_MIGRATIONS: "false"
     volumes:
-      - laravel_storage:/var/www/html/storage
+      - type: volume
+        source: laravel_storage_prod
+        target: /var/www/html/storage
+        volume:
+          nocopy: true
     command: php artisan queue:work --queue=kuma,default --sleep=3 --tries=3 --backoff=3
 
   reverb:
     <<: *prod-php
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
-      APP_ENV: production
+      <<: *prod-env
       BROADCAST_DRIVER: reverb
       REVERB_APP_ID: ${REVERB_APP_ID:-local}
       REVERB_APP_KEY: ${REVERB_APP_KEY:-local-app-key}
@@ -67,7 +104,12 @@ services:
       REVERB_SCHEME: http
       RUN_MIGRATIONS: "false"
     volumes:
-      - laravel_storage:/var/www/html/storage
+      - type: volume
+        source: laravel_storage_prod
+        target: /var/www/html/storage
+        volume:
+          nocopy: true
+    command: php artisan reverb:start --host=0.0.0.0 --port=8080 --no-ansi
 
   nginx:
     image: api-monitor-nginx:prod
@@ -80,26 +122,39 @@ services:
     ports:
       - "${APP_PORT:-8000}:80"
     volumes:
-      - laravel_storage:/var/www/html/storage:ro
+      - type: volume
+        source: laravel_storage_prod
+        target: /var/www/html/storage
+        read_only: true
+        volume:
+          nocopy: true
     environment:
       APP_ENV: production
     restart: unless-stopped
 
-  vite:
-    profiles: ["dev"]
-
   mysql:
+    image: mysql:8.4
     environment:
       MYSQL_DATABASE: ${DB_DATABASE:-api_monitor}
       MYSQL_USER: ${DB_USERNAME:-api_monitor}
       MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    volumes:
+      - mysql_data_prod:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     ports: []
 
   redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data_prod:/data
     ports: []
 
 volumes:
-  laravel_storage:
-  mysql_data:
-  redis_data:
+  laravel_storage_prod:
+  mysql_data_prod:
+  redis_data_prod:
